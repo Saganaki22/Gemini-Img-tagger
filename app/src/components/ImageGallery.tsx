@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { ImageItem } from '@/types';
 import { useLongPress } from '@/hooks/useLongPress';
-import { useThrottledCallback } from '@/hooks/usePerformance';
 
 type ViewMode = 'grid-3' | 'grid-6' | 'list';
 type SortOrder = 'asc' | 'desc';
@@ -510,7 +509,10 @@ function ListViewItem({
     <div
       onMouseDown={(e) => onMouseDown?.(e, image.id)}
       onMouseEnter={() => onMouseEnter?.(image.id)}
-      onClick={(e) => onClick?.(e, image.id)}
+      onClick={(e) => {
+        onToggle(e.ctrlKey || e.metaKey);
+        onClick?.(e, image.id);
+      }}
       className={cn(
         'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer select-none user-select-none',
         isSelected && 'ring-2 ring-primary'
@@ -718,7 +720,6 @@ export function ImageGallery({
   const [internalItemsPerPage, setInternalItemsPerPage] = useState<number>(60);
   
   const page = externalPage !== undefined ? externalPage : internalPage;
-  const setPage = onPageChange || setInternalPage;
   
   const itemsPerPage = externalItemsPerPage !== undefined ? externalItemsPerPage : internalItemsPerPage;
   const setItemsPerPage = (value: number) => {

@@ -12,7 +12,7 @@ export function Dropzone({ onImagesAdd, disabled }: DropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = async (file: File): Promise<{ name: string; mime: string; data: string; preview: string } | null> => {
+  const processFile = async (file: File): Promise<{ name: string; mime: string; data: string; preview: string; status?: string; result?: string } | null> => {
     return new Promise((resolve) => {
       if (!file.type.startsWith('image/')) {
         resolve(null);
@@ -82,7 +82,7 @@ export function Dropzone({ onImagesAdd, disabled }: DropzoneProps) {
             const baseName = imgEntry.name.replace(/\.[^/.]+$/, '').toLowerCase();
             const textContent = textFiles.get(baseName);
             if (textContent) {
-              images.push({ ...image, result: textContent, status: 'done' });
+              images.push({ ...image, result: textContent });
             } else {
               images.push(image);
             }

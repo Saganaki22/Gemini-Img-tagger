@@ -83,8 +83,8 @@ export function useThrottledCallback<T extends (...args: any[]) => void>(
   callback: T,
   delay: number
 ): T {
-  const lastCallRef = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const lastCallRef = useRef<number>(Date.now());
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   return useCallback(
     ((...args: Parameters<T>) => {
@@ -112,7 +112,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => void>(
   callback: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   return useCallback(
     ((...args: Parameters<T>) => {
@@ -129,7 +129,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => void>(
 
 interface UseWebWorkerOptions {
   onMessage?: (data: any) => void;
-  onError?: (error: Error) => void;
+  onError?: (error: Error | ErrorEvent) => void;
 }
 
 export function useWebWorker(workerScript: string, options: UseWebWorkerOptions = {}) {
@@ -144,7 +144,8 @@ export function useWebWorker(workerScript: string, options: UseWebWorkerOptions 
       onMessage?.(e.data);
     };
 
-    worker.onerror = (error) => {
+    worker.onerror = (errorEvent) => {
+      const error = new Error(errorEvent.message);
       onError?.(error);
     };
 

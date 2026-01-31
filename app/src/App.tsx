@@ -86,9 +86,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   // Search
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const imageGalleryRef = useRef<HTMLDivElement>(null);
-
-  // System Instructions Modal
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
   const [modalFontSize, setModalFontSize] = useState(() => {
     // Load from localStorage or default to 14
@@ -100,9 +97,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   useEffect(() => {
     localStorage.setItem('gemini_img_tagger_modal_font_size', modalFontSize.toString());
   }, [modalFontSize]);
-
-  // Help Modal
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Sound & Time Tracking
   const [isMuted, setIsMuted] = useState(false);
@@ -251,14 +245,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [resetCompletionEffects]);
-
-  // Format time helper
-  const formatTime = (seconds: number): string => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // Timer effect with performance tracking
   const completedTimestampsRef = useRef<{ count: number; lastUpdate: number }>({ count: 0, lastUpdate: 0 });
