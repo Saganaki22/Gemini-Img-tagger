@@ -612,6 +612,9 @@ export function ImageGallery({
   const isDraggingRef = useRef(false);
   const wasDraggingRef = useRef(false);
   const toggledInMouseDownRef = useRef(false);
+  
+  // Track last grid view items per page to restore when switching back
+  const [lastGridItemsPerPage, setLastGridItemsPerPage] = useState<number>(60);
 
   const handleOpenModal = useCallback((id: string) => {
     setModalImageId(id);
@@ -777,6 +780,23 @@ export function ImageGallery({
     goToPage(page + 1);
   }, [goToPage, page]);
   
+  // Handle view mode changes - auto-switch items per page
+  useEffect(() => {
+    if (viewMode === 'list') {
+      // Save current grid setting before switching to list
+      if (itemsPerPage !== Infinity) {
+        setLastGridItemsPerPage(itemsPerPage);
+      }
+      // Auto-set to "All" for list view
+      setItemsPerPage(Infinity);
+    } else {
+      // Restore previous grid setting when switching back
+      if (itemsPerPage === Infinity) {
+        setItemsPerPage(lastGridItemsPerPage);
+      }
+    }
+  }, [viewMode]);
+
   // Reset page when view mode changes or items per page changes
   useEffect(() => {
     if (onPageChange) {
@@ -855,7 +875,7 @@ export function ImageGallery({
               value={itemsPerPage === Infinity ? 'all' : itemsPerPage}
               onChange={(e) => setItemsPerPage(e.target.value === 'all' ? Infinity : parseInt(e.target.value))}
               className="h-8 px-2 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:border-primary/50 transition-colors"
-              style={{ colorScheme: 'dark' }}
+              style={{ colorScheme: 'dark', accentColor: 'hsl(var(--primary))' }}
             >
               <option value={30}>30</option>
               <option value={60}>60</option>
@@ -868,8 +888,8 @@ export function ImageGallery({
         )}
       </div>
 
-      {/* Pagination Controls - show for large datasets */}
-      {images.length > effectiveItemsPerPage && effectiveItemsPerPage !== Infinity && (
+      {/* Pagination Controls - show for large datasets (only in grid views, not list) */}
+      {viewMode !== 'list' && images.length > effectiveItemsPerPage && effectiveItemsPerPage !== Infinity && (
         <div className="flex items-center justify-between mb-4 py-2">
           <div className="text-sm text-muted-foreground">
             Showing {(page - 1) * effectiveItemsPerPage + 1} - {Math.min(page * effectiveItemsPerPage, images.length)} of {images.length} images

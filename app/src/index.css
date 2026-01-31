@@ -357,6 +357,10 @@
 }
 
 /* Custom select dropdown styling for yellow/gold theme */
+select {
+  accent-color: hsl(var(--primary));
+}
+
 select option {
   background-color: hsl(var(--card));
   color: hsl(var(--foreground));
@@ -364,12 +368,14 @@ select option {
 }
 
 select option:checked {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
-select option:hover {
-  background-color: hsl(var(--primary) / 0.2);
+select option:hover,
+select option:focus {
+  background-color: hsl(var(--primary) / 0.3) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 /* Firefox specific styling */
@@ -382,4 +388,15 @@ select:-moz-focusring {
 select:focus {
   border-color: hsl(var(--primary));
   box-shadow: 0 0 0 1px hsl(var(--primary));
+}
+
+/* Override browser default blue highlight */
+select:focus option:checked {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Force gold theme on option hover/focus in all browsers */
+select option:active,
+select option:focus-visible {
+  background-color: hsl(var(--primary) / 0.4) !important;
 }
