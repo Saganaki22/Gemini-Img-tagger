@@ -403,7 +403,10 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       );
 
       addLog(`Processed: ${image.name}`, 'success');
-      playSuccessChime();
+      // Only play sound for single image retries, not during batch processing
+      if (isSingleRerunRef.current) {
+        playSuccessChime();
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
