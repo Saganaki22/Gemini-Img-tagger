@@ -1156,7 +1156,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
           onClick={() => setIsSystemModalOpen(false)}
         >
           <div
-            className="bg-card border border-border rounded-xl max-w-4xl w-full max-h-[85vh] flex flex-col animate-scale-in"
+            className="bg-card border border-border rounded-xl max-w-4xl w-full h-[95vh] sm:h-[90vh] md:h-[95vh] flex flex-col animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -1179,9 +1179,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-4 overflow-auto space-y-4">
+            <div className="flex-1 p-4 overflow-auto space-y-4 flex flex-col">
               {/* System Instructions */}
-              <div className="flex flex-col h-[calc(50%-8px)]">
+              <div className="flex flex-col flex-1 min-h-[300px]">
                 <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
                   <Settings2 className="h-3 w-3" />
                   System Instructions
@@ -1190,13 +1190,13 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                   value={systemInstructions}
                   onChange={(e) => setSystemInstructions(e.target.value)}
                   placeholder="Optional: Add system-wide instructions..."
-                  className="w-full flex-1 min-h-[200px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-none focus:border-primary focus:outline-none console-text"
+                  className="w-full flex-1 min-h-[250px] sm:min-h-[300px] md:min-h-[350px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-y focus:border-primary focus:outline-none console-text"
                   autoFocus
                 />
               </div>
               
               {/* Prompt */}
-              <div className="flex flex-col h-[calc(50%-8px)]">
+              <div className="flex flex-col flex-1 min-h-[300px]">
                 <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
                   <Type className="h-3 w-3" />
                   Prompt
@@ -1205,7 +1205,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder='Add trigger words here (e.g., "include this at the beginning: example_trigger, ")'
-                  className="w-full flex-1 min-h-[200px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-none focus:border-primary focus:outline-none console-text"
+                  className="w-full flex-1 min-h-[250px] sm:min-h-[300px] md:min-h-[350px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-y focus:border-primary focus:outline-none console-text"
                 />
               </div>
             </div>
