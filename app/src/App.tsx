@@ -155,6 +155,88 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }
   }, [isMuted]);
 
+  // Completion effects refs
+  const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const originalTitleRef = useRef<string>('Image Tagger Pro - AI-powered image tagging with Gemini');
+  const originalFaviconRef = useRef<string>('/favicon.svg');
+
+  // Matrix-style title animation
+  const animateMatrixTitle = useCallback(() => {
+    const message = 'Batch Finished Successfully';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
+    let iteration = 0;
+    
+    if (titleIntervalRef.current) {
+      clearInterval(titleIntervalRef.current);
+    }
+    
+    titleIntervalRef.current = setInterval(() => {
+      document.title = message
+        .split('')
+        .map((char, index) => {
+          if (index < iteration) {
+            return message[index];
+          }
+          return chars[Math.floor(Math.random() * chars.length)];
+        })
+        .join('');
+      
+      if (iteration >= message.length) {
+        if (titleIntervalRef.current) {
+          clearInterval(titleIntervalRef.current);
+          titleIntervalRef.current = null;
+        }
+        // Keep the final message
+        document.title = message;
+      }
+      
+      iteration += 1 / 3;
+    }, 50);
+  }, []);
+
+  // Reset completion effects
+  const resetCompletionEffects = useCallback(() => {
+    // Reset title
+    if (titleIntervalRef.current) {
+      clearInterval(titleIntervalRef.current);
+      titleIntervalRef.current = null;
+    }
+    document.title = originalTitleRef.current;
+    
+    // Reset favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      favicon.href = originalFaviconRef.current;
+    }
+  }, []);
+
+  // Start completion effects
+  const startCompletionEffects = useCallback(() => {
+    // Change favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      favicon.href = '/success.svg';
+    }
+    
+    // Start matrix title animation
+    animateMatrixTitle();
+  }, [animateMatrixTitle]);
+
+  // Handle visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        resetCompletionEffects();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [resetCompletionEffects]);
+
   // Format time helper
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -660,6 +742,11 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       playSuccessChime();
       const doneCount = images.filter((img) => img.status === 'done').length;
       addToast(`Batch complete! ${doneCount} images processed.`, 'success');
+      
+      // Trigger completion effects if user is not on the page
+      if (document.hidden) {
+        startCompletionEffects();
+      }
     }
 
     // Process any pending reruns
