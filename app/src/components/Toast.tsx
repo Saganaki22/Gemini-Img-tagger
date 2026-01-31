@@ -54,11 +54,13 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
       <Icon className="h-5 w-5 flex-shrink-0" />
       <p className="text-sm font-medium flex-1">{toast.message}</p>
       <button
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
           setIsExiting(true);
           setTimeout(onRemove, 300);
         }}
-        className="opacity-70 hover:opacity-100 transition-opacity"
+        className="opacity-70 hover:opacity-100 transition-opacity z-50"
       >
         <X className="h-4 w-4" />
       </button>

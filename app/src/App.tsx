@@ -185,12 +185,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     
     // Restore original title
     document.title = originalTitleRef.current;
-    
-    // Reset favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) {
-      favicon.href = originalFaviconRef.current;
-    }
   }, []);
 
   // Sliding/scrolling title animation (like train station display)
@@ -229,17 +223,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Start completion effects
   const startCompletionEffects = useCallback(() => {
-    // Change favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) {
-      // Store current href if not already stored
-      if (!originalFaviconRef.current || originalFaviconRef.current === '/favicon.svg') {
-        originalFaviconRef.current = favicon.href;
-      }
-      // Change to success favicon with cache-busting
-      favicon.href = `/success.svg?v=${Date.now()}`;
-    }
-    
     // Start sliding title animation (includes 10s auto-reset)
     animateSlidingTitle();
   }, [animateSlidingTitle]);
@@ -321,6 +304,10 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     };
   }, [processingState, startTime, images]);
 
+  // Pagination state for search
+  const [galleryPage, setGalleryPage] = useState(1);
+  const [galleryItemsPerPage, setGalleryItemsPerPage] = useState(60);
+
   // Search function
   const handleSearch = useCallback(() => {
     if (!searchQuery.trim()) return;
@@ -334,16 +321,27 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       // Select the image
       setSelectedIds(new Set([foundImage.id]));
       
-      // Scroll to the image
-      const imageElement = document.getElementById(`image-${foundImage.id}`);
-      if (imageElement) {
-        imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Add a highlight effect
-        imageElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-        setTimeout(() => {
-          imageElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-        }, 2000);
+      // Calculate which page the image is on (only for grid views)
+      const sortedImages = [...images].sort((a, b) => a.name.localeCompare(b.name));
+      const imageIndex = sortedImages.findIndex(img => img.id === foundImage.id);
+      
+      if (imageIndex !== -1 && galleryItemsPerPage !== Infinity) {
+        const targetPage = Math.floor(imageIndex / galleryItemsPerPage) + 1;
+        setGalleryPage(targetPage);
       }
+      
+      // Scroll to the image after page change
+      setTimeout(() => {
+        const imageElement = document.getElementById(`image-${foundImage.id}`);
+        if (imageElement) {
+          imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a highlight effect
+          imageElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            imageElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 2000);
+        }
+      }, 100);
       
       addToast(`Found: ${foundImage.name}`, 'success');
       setIsSearchOpen(false);
@@ -351,7 +349,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     } else {
       addToast('No image found matching that name', 'error');
     }
-  }, [searchQuery, images, addToast]);
+  }, [searchQuery, images, addToast, galleryItemsPerPage]);
 
   // Add images
   const handleImagesAdd = useCallback(
@@ -1136,6 +1134,10 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
               onRerun={handleRerun}
               onUpdateResult={handleUpdateResult}
               isProcessing={processingState === 'running'}
+              page={galleryPage}
+              onPageChange={setGalleryPage}
+              itemsPerPage={galleryItemsPerPage}
+              onItemsPerPageChange={setGalleryItemsPerPage}
             />
           </section>
         </div>

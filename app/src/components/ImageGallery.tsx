@@ -17,6 +17,10 @@ interface ImageGalleryProps {
   onRerun: (id: string) => void;
   onUpdateResult: (id: string, result: string) => void;
   isProcessing: boolean;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  itemsPerPage?: number;
+  onItemsPerPageChange?: (count: number) => void;
 }
 
 interface ImageModalProps {
@@ -592,6 +596,10 @@ export function ImageGallery({
   onRerun,
   onUpdateResult,
   isProcessing,
+  page: externalPage,
+  onPageChange,
+  itemsPerPage: externalItemsPerPage,
+  onItemsPerPageChange,
 }: ImageGalleryProps) {
   const [modalImageId, setModalImageId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid-6');
@@ -700,9 +708,22 @@ export function ImageGallery({
     };
   }, [isDragging, handleMouseUp]);
 
-  // Pagination for large datasets
-  const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(60);
+  // Pagination for large datasets - use external state if provided
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalItemsPerPage, setInternalItemsPerPage] = useState<number>(60);
+  
+  const page = externalPage !== undefined ? externalPage : internalPage;
+  const setPage = onPageChange || setInternalPage;
+  
+  const itemsPerPage = externalItemsPerPage !== undefined ? externalItemsPerPage : internalItemsPerPage;
+  const setItemsPerPage = (value: number) => {
+    if (onItemsPerPageChange) {
+      onItemsPerPageChange(value);
+    } else {
+      setInternalItemsPerPage(value);
+    }
+  };
+  
   const effectiveItemsPerPage = itemsPerPage;
   const totalPages = effectiveItemsPerPage === Infinity ? 1 : Math.ceil(images.length / effectiveItemsPerPage);
   
@@ -735,10 +756,33 @@ export function ImageGallery({
     return sortedImages.slice(start, end);
   }, [sortedImages, page, effectiveItemsPerPage]);
 
+  // Helper function to change page (handles both internal and external state)
+  const goToPage = useCallback((newPage: number) => {
+    const validPage = Math.max(1, Math.min(totalPages, newPage));
+    if (onPageChange) {
+      onPageChange(validPage);
+    } else {
+      setInternalPage(validPage);
+    }
+  }, [onPageChange, totalPages]);
+  
+  // Helper functions for prev/next
+  const goToPrevPage = useCallback(() => {
+    goToPage(page - 1);
+  }, [goToPage, page]);
+  
+  const goToNextPage = useCallback(() => {
+    goToPage(page + 1);
+  }, [goToPage, page]);
+  
   // Reset page when view mode changes or items per page changes
   useEffect(() => {
-    setPage(1);
-  }, [viewMode, sortOrder, itemsPerPage]);
+    if (onPageChange) {
+      onPageChange(1);
+    } else {
+      setInternalPage(1);
+    }
+  }, [viewMode, sortOrder, itemsPerPage, onPageChange]);
 
   const modalImage = modalImageId ? sortedImages.find((img) => img.id === modalImageId) : null;
 
@@ -832,7 +876,7 @@ export function ImageGallery({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={goToPrevPage}
               disabled={page === 1}
             >
               Previous
@@ -848,15 +892,15 @@ export function ImageGallery({
                 onChange={(e) => {
                   const newPage = parseInt(e.target.value);
                   if (newPage >= 1 && newPage <= totalPages) {
-                    setPage(newPage);
+                    goToPage(newPage);
                   }
                 }}
                 onBlur={(e) => {
                   const newPage = parseInt(e.target.value);
                   if (isNaN(newPage) || newPage < 1) {
-                    setPage(1);
+                    goToPage(1);
                   } else if (newPage > totalPages) {
-                    setPage(totalPages);
+                    goToPage(totalPages);
                   }
                 }}
                 className="w-14 h-8 px-1 text-center text-sm bg-secondary border border-border rounded-md focus:outline-none focus:border-primary"
@@ -867,7 +911,7 @@ export function ImageGallery({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={goToNextPage}
               disabled={page === totalPages}
             >
               Next
