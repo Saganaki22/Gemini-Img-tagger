@@ -20,7 +20,7 @@ An intuitive, plug-and-play solution for batch tagging large image datasets usin
 - **📝 Rich Text Editor** - Built-in modal editor for refining AI-generated descriptions
 - **📦 ZIP Export** - Export images with their corresponding .txt files in one click
 - **💾 Auto-Save** - API key and system instructions are securely stored locally
-- **🔒 Secure Storage** - API keys are encrypted using XOR encryption before local storage
+- **🔒 Secure Storage** - API keys are obfuscated using XOR before local storage
 - **📊 Progress Tracking** - Real-time progress bar and console logging
 - **🎨 Modern UI** - Beautiful dark-themed interface with smooth animations
 - **📱 Responsive Design** - Works seamlessly on desktop and tablet devices
