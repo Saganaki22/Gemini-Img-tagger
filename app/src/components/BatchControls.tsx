@@ -18,6 +18,8 @@ interface BatchControlsProps {
   canExport: boolean;
   batchSize: number;
   onBatchSizeChange: (size: number) => void;
+  elapsedTime: number;
+  estimatedTimeRemaining: number | null;
 }
 
 export function BatchControls({
@@ -33,6 +35,8 @@ export function BatchControls({
   canExport,
   batchSize,
   onBatchSizeChange,
+  elapsedTime,
+  estimatedTimeRemaining,
 }: BatchControlsProps) {
   const [isHoldingDelete, setIsHoldingDelete] = useState(false);
   const [deleteCountdown, setDeleteCountdown] = useState(4);
@@ -86,8 +90,25 @@ export function BatchControls({
     return 'Start Batch';
   };
 
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-4">
+      {/* Time Display */}
+      {state === 'running' && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Elapsed: {formatTime(elapsedTime)}</span>
+          {estimatedTimeRemaining !== null && estimatedTimeRemaining > 0 && (
+            <span>Est. remaining: {formatTime(estimatedTimeRemaining)}</span>
+          )}
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -114,9 +135,9 @@ export function BatchControls({
         <Input
           type="number"
           min={1}
-          max={20}
+          max={100}
           value={batchSize}
-          onChange={(e) => onBatchSizeChange(Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))}
+          onChange={(e) => onBatchSizeChange(Math.max(1, Math.min(100, parseInt(e.target.value) || 5)))}
           className="bg-secondary/50 border-border"
           disabled={state === 'running'}
         />
@@ -200,12 +221,14 @@ export function BatchControls({
         {/* Export ZIP Button */}
         <Button
           variant="outline"
-          className="gap-2 border-border hover:border-primary/50 hover:text-primary"
+          className="gap-2 border-border hover:border-primary/50 hover:bg-primary hover:text-black group"
           onClick={onExportZip}
           disabled={!canExport || state === 'running'}
         >
-          <Archive className="h-4 w-4" />
-          {selectedCount > 0 ? `Export Selected (${selectedCount})` : 'Export ZIP'}
+          <Archive className="h-4 w-4 group-hover:text-black" />
+          <span className="group-hover:text-black">
+            {selectedCount > 0 ? `Export Selected (${selectedCount})` : 'Export ZIP'}
+          </span>
         </Button>
       </div>
     </div>

@@ -1,8 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
-import { Sparkles, Settings2, Github, Maximize2, X } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ApiKeyInput } from '@/components/ApiKeyInput';
 import { ModelSelector } from '@/components/ModelSelector';
 import { Dropzone } from '@/components/Dropzone';
@@ -78,6 +84,13 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   // System Instructions Modal
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
 
+  // Sound & Time Tracking
+  const [isMuted, setIsMuted] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Toast
   const { toasts, addToast, removeToast } = useToast();
 
@@ -86,6 +99,74 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isPausedRef = useRef(false);
+  const currentBatchIndexRef = useRef(0);
+  const itemsToProcessRef = useRef<ImageItem[]>([]);
+
+  // Beep sound function
+  const playBeep = useCallback(() => {
+    if (isMuted) return;
+    
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch {
+      // Audio not supported, silently fail
+    }
+  }, [isMuted]);
+
+  // Format time helper
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Timer effect
+  useEffect(() => {
+    if (processingState === 'running' && startTime) {
+      timerIntervalRef.current = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        setElapsedTime(elapsed);
+        
+        // Calculate estimated time remaining
+        const completedCount = images.filter(img => img.status === 'done').length;
+        const totalCount = itemsToProcessRef.current.length;
+        
+        if (completedCount > 0 && totalCount > 0) {
+          const avgTimePerImage = elapsed / completedCount;
+          const remaining = totalCount - completedCount;
+          setEstimatedTimeRemaining(Math.floor(avgTimePerImage * remaining));
+        }
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [processingState, startTime, images]);
 
   // Add images
   const handleImagesAdd = useCallback(
@@ -183,18 +264,30 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       return;
     }
 
-    const itemsToProcess =
-      selectedIds.size > 0
-        ? images.filter((img) => selectedIds.has(img.id) && img.status !== 'processing')
+    // If resuming, use the existing items
+    let itemsToProcess: ImageItem[];
+    if (itemsToProcessRef.current.length > 0 && processingState === 'idle') {
+      // Resume from where we left off
+      itemsToProcess = itemsToProcessRef.current;
+    } else {
+      // Start fresh
+      itemsToProcess = selectedIds.size > 0
+        ? images.filter((img) => selectedIds.has(img.id) && img.status !== 'done' && img.status !== 'processing')
         : images.filter((img) => img.status !== 'done' && img.status !== 'processing');
+      itemsToProcessRef.current = itemsToProcess;
+      currentBatchIndexRef.current = 0;
+    }
 
-    if (itemsToProcess.length === 0) {
+    if (itemsToProcess.length === 0 || currentBatchIndexRef.current * batchSize >= itemsToProcess.length) {
       addToast('No images to process', 'warning');
+      itemsToProcessRef.current = [];
+      currentBatchIndexRef.current = 0;
       return;
     }
 
     setProcessingState('running');
     abortControllerRef.current = new AbortController();
+    isPausedRef.current = false;
 
     addLog(
       `Starting batch: ${itemsToProcess.length} images with ${model}`,
@@ -203,14 +296,19 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
     const total = itemsToProcess.length;
 
-    for (let i = 0; i < total; i += batchSize) {
-      if (abortControllerRef.current.signal.aborted) {
+    for (let i = currentBatchIndexRef.current * batchSize; i < total; i += batchSize) {
+      currentBatchIndexRef.current = Math.floor(i / batchSize);
+      
+      // Check if stopped
+      if (abortControllerRef.current?.signal.aborted) {
         addLog('Batch processing stopped', 'warn');
         break;
       }
 
       const batch = itemsToProcess.slice(i, i + batchSize);
-      addLog(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(total / batchSize)}`, 'info');
+      const totalBatches = Math.ceil(total / batchSize);
+      const currentBatchNum = Math.floor(i / batchSize) + 1;
+      addLog(`Processing batch ${currentBatchNum}/${totalBatches}`, 'info');
 
       // Update status to processing
       setImages((prev) =>
@@ -301,18 +399,41 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
         })
       );
 
-      // Delay between batches
-      if (i + batchSize < total && !abortControllerRef.current.signal.aborted) {
+      // Check if paused after completing the batch
+      if (isPausedRef.current) {
+        addLog('Batch paused. Click Start to resume.', 'warn');
+        setProcessingState('idle');
+        return;
+      }
+
+      // Check if stopped
+      if (abortControllerRef.current?.signal.aborted) {
+        addLog('Batch processing stopped', 'warn');
+        break;
+      }
+
+      // Delay between batches (if not the last batch)
+      if (i + batchSize < total) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
-    setProcessingState('idle');
-    abortControllerRef.current = null;
+    // Only play sound and show completion if not stopped/paused (i.e., completed successfully)
+    if (!abortControllerRef.current?.signal.aborted) {
+      playBeep();
+      const doneCount = images.filter((img) => img.status === 'done').length;
+      addToast(`Batch complete! ${doneCount} images processed.`, 'success');
+    }
 
-    const doneCount = images.filter((img) => img.status === 'done').length;
-    addToast(`Batch complete! ${doneCount} images processed.`, 'success');
-  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, addToast, addLog]);
+    // Reset refs when complete
+    itemsToProcessRef.current = [];
+    currentBatchIndexRef.current = 0;
+    setProcessingState('idle');
+    setStartTime(null);
+    setElapsedTime(0);
+    setEstimatedTimeRemaining(null);
+    abortControllerRef.current = null;
+  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, processingState, addToast, addLog, playBeep]);
 
   // Pause
   const handlePause = useCallback(() => {
@@ -416,6 +537,13 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
               <span>{images.length} images</span>
               <span>{completedCount} tagged</span>
             </div>
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors"
+              title={isMuted ? 'Unmute notification sounds' : 'Mute notification sounds'}
+            >
+              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            </button>
             <a
               href="https://github.com/Saganaki22/Gemini-Img-tagger"
               target="_blank"
@@ -448,10 +576,19 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             <div className="bg-card border border-border rounded-xl p-4 space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    System Instructions
-                  </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 cursor-help">
+                          <Settings2 className="h-3.5 w-3.5" />
+                          System Instructions
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>High-level instructions that guide the AI's behavior for all image descriptions</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -471,9 +608,18 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Prompt
-                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-help border-b border-dashed border-muted-foreground/50">
+                        Prompt
+                      </label>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p>Include this at the beginning of the description. Example: &quot;triggerword, &quot; to add trigger words in captions</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -503,6 +649,8 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                 canExport={completedCount > 0}
                 batchSize={batchSize}
                 onBatchSizeChange={setBatchSize}
+                elapsedTime={elapsedTime}
+                estimatedTimeRemaining={estimatedTimeRemaining}
               />
             </div>
 
