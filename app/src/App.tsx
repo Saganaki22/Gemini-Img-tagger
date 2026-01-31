@@ -160,38 +160,33 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   const originalTitleRef = useRef<string>('Image Tagger Pro - AI-powered image tagging with Gemini');
   const originalFaviconRef = useRef<string>('/favicon.svg');
 
-  // Matrix-style title animation
-  const animateMatrixTitle = useCallback(() => {
-    const message = 'Batch Finished Successfully';
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*';
-    let iteration = 0;
+  // Sliding/scrolling title animation (like train station display)
+  const animateSlidingTitle = useCallback(() => {
+    const message = 'Batch Finished Successfully ✓';
+    const separator = ' • ';
+    let position = 0;
     
     if (titleIntervalRef.current) {
       clearInterval(titleIntervalRef.current);
     }
     
+    // Create scrolling text effect
     titleIntervalRef.current = setInterval(() => {
-      document.title = message
-        .split('')
-        .map((char, index) => {
-          if (index < iteration) {
-            return message[index];
-          }
-          return chars[Math.floor(Math.random() * chars.length)];
-        })
-        .join('');
+      // Create the scrolling text by slicing and concatenating
+      const visibleText = message + separator;
+      const start = position % visibleText.length;
       
-      if (iteration >= message.length) {
-        if (titleIntervalRef.current) {
-          clearInterval(titleIntervalRef.current);
-          titleIntervalRef.current = null;
-        }
-        // Keep the final message
-        document.title = message;
+      // Show a window of text that scrolls
+      let displayText = '';
+      for (let i = 0; i < 35; i++) {
+        const charIndex = (start + i) % visibleText.length;
+        displayText += visibleText[charIndex];
       }
       
-      iteration += 1 / 3;
-    }, 50);
+      document.title = displayText;
+      position++;
+      
+    }, 150); // Scroll speed - 150ms per character
   }, []);
 
   // Reset completion effects
@@ -201,6 +196,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       clearInterval(titleIntervalRef.current);
       titleIntervalRef.current = null;
     }
+    // Restore original title
     document.title = originalTitleRef.current;
     
     // Reset favicon
@@ -218,8 +214,8 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       favicon.href = '/success.svg';
     }
     
-    // Start matrix title animation
-    animateMatrixTitle();
+    // Start sliding title animation
+    animateSlidingTitle();
   }, [animateMatrixTitle]);
 
   // Handle visibility change
