@@ -836,9 +836,33 @@ export function ImageGallery({
             >
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground px-2">
-              Page {page} of {totalPages}
-            </span>
+            
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground">Page</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={page}
+                onChange={(e) => {
+                  const newPage = parseInt(e.target.value);
+                  if (newPage >= 1 && newPage <= totalPages) {
+                    setPage(newPage);
+                  }
+                }}
+                onBlur={(e) => {
+                  const newPage = parseInt(e.target.value);
+                  if (isNaN(newPage) || newPage < 1) {
+                    setPage(1);
+                  } else if (newPage > totalPages) {
+                    setPage(totalPages);
+                  }
+                }}
+                className="w-14 h-8 px-1 text-center text-sm bg-secondary border border-border rounded-md focus:outline-none focus:border-primary"
+              />
+              <span className="text-sm text-muted-foreground">of {totalPages}</span>
+            </div>
+            
             <Button
               variant="outline"
               size="sm"
