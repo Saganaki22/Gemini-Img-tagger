@@ -702,8 +702,9 @@ export function ImageGallery({
 
   // Pagination for large datasets
   const [page, setPage] = useState(1);
-  const itemsPerPage = viewMode === 'list' ? 100 : 60;
-  const totalPages = Math.ceil(images.length / itemsPerPage);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(60);
+  const effectiveItemsPerPage = itemsPerPage;
+  const totalPages = effectiveItemsPerPage === Infinity ? 1 : Math.ceil(images.length / effectiveItemsPerPage);
   
   // Sort images - use web worker for large datasets
   const sortedImages = useMemo(() => {
@@ -728,16 +729,16 @@ export function ImageGallery({
 
   // Paginated images for grid views
   const paginatedImages = useMemo(() => {
-    if (viewMode === 'list') return sortedImages;
-    const start = (page - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
+    if (effectiveItemsPerPage === Infinity) return sortedImages;
+    const start = (page - 1) * effectiveItemsPerPage;
+    const end = start + effectiveItemsPerPage;
     return sortedImages.slice(start, end);
-  }, [sortedImages, page, itemsPerPage, viewMode]);
+  }, [sortedImages, page, effectiveItemsPerPage]);
 
-  // Reset page when view mode changes
+  // Reset page when view mode changes or items per page changes
   useEffect(() => {
     setPage(1);
-  }, [viewMode, sortOrder]);
+  }, [viewMode, sortOrder, itemsPerPage]);
 
   const modalImage = modalImageId ? sortedImages.find((img) => img.id === modalImageId) : null;
 
@@ -799,13 +800,32 @@ export function ImageGallery({
           {sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
           <span className="hidden sm:inline">{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</span>
         </Button>
+
+        {/* Items Per Page Dropdown - show when there are images */}
+        {images.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground hidden sm:inline">Show:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(e.target.value === 'all' ? Infinity : parseInt(e.target.value))}
+              className="h-8 px-2 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:border-primary"
+            >
+              <option value={30}>30</option>
+              <option value={60}>60</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={500}>500</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Pagination Controls - show for large datasets */}
-      {images.length > itemsPerPage && (
+      {images.length > effectiveItemsPerPage && effectiveItemsPerPage !== Infinity && (
         <div className="flex items-center justify-between mb-4 py-2">
           <div className="text-sm text-muted-foreground">
-            Showing {(page - 1) * itemsPerPage + 1} - {Math.min(page * itemsPerPage, images.length)} of {images.length} images
+            Showing {(page - 1) * effectiveItemsPerPage + 1} - {Math.min(page * effectiveItemsPerPage, images.length)} of {images.length} images
           </div>
           <div className="flex items-center gap-2">
             <Button

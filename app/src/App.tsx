@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search, Trash2, Gauge } from 'lucide-react';
+import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -853,22 +853,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             >
               <Search className="h-5 w-5" />
             </button>
-            
-            {/* Clear Images Button - only show when images exist */}
-            {images.length > 0 && (
-              <button
-                onClick={() => {
-                  setImages([]);
-                  setSelectedIds(new Set());
-                  addToast('Gallery cleared - memory freed', 'success');
-                  addLog('Gallery cleared to free memory', 'info');
-                }}
-                className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-destructive hover:text-white transition-colors"
-                title="Clear all images to free memory"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            )}
             
             <button
               onClick={() => setIsMuted(!isMuted)}
