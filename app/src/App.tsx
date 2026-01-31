@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -80,6 +80,11 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Console
   const [consoleExpanded, setConsoleExpanded] = useState(false);
+
+  // Search
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const imageGalleryRef = useRef<HTMLDivElement>(null);
 
   // System Instructions Modal
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
@@ -167,6 +172,38 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       }
     };
   }, [processingState, startTime, images]);
+
+  // Search function
+  const handleSearch = useCallback(() => {
+    if (!searchQuery.trim()) return;
+    
+    const query = searchQuery.toLowerCase().trim();
+    const foundImage = images.find(img => 
+      img.name.toLowerCase().includes(query)
+    );
+    
+    if (foundImage) {
+      // Select the image
+      setSelectedIds(new Set([foundImage.id]));
+      
+      // Scroll to the image
+      const imageElement = document.getElementById(`image-${foundImage.id}`);
+      if (imageElement) {
+        imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a highlight effect
+        imageElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+        setTimeout(() => {
+          imageElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+        }, 2000);
+      }
+      
+      addToast(`Found: ${foundImage.name}`, 'success');
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    } else {
+      addToast('No image found matching that name', 'error');
+    }
+  }, [searchQuery, images, addToast]);
 
   // Add images
   const handleImagesAdd = useCallback(
@@ -532,11 +569,62 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{images.length} images</span>
-              <span>{completedCount} tagged</span>
-            </div>
+          {/* Center - Search Bar */}
+          <div className="flex-1 flex justify-center px-4">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-2 w-full max-w-md">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    } else if (e.key === 'Escape') {
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                    }
+                  }}
+                  placeholder="Search image name..."
+                  className="flex-1 h-9 px-3 bg-secondary/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSearch}
+                  className="h-9"
+                >
+                  Find
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                  }}
+                  className="h-9 px-2"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground">
+                <span>{images.length} images</span>
+                <span>{completedCount} tagged</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right - Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors"
+              title="Search images"
+            >
+              <Search className="h-5 w-5" />
+            </button>
             <button
               onClick={() => setIsMuted(!isMuted)}
               className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors"

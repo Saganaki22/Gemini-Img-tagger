@@ -247,6 +247,7 @@ function ImageCard({
   return (
     <>
       <div
+        id={`image-${image.id}`}
         className={cn(
           'image-card relative bg-card rounded-xl border border-border overflow-hidden group',
           isSelected && 'card-selected',
