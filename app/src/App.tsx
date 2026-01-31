@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search, Gauge } from 'lucide-react';
+import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search, Gauge, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -1179,20 +1179,41 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-4 overflow-hidden">
-              <textarea
-                value={systemInstructions}
-                onChange={(e) => setSystemInstructions(e.target.value)}
-                placeholder="Optional: Add system-wide instructions..."
-                className="w-full h-full min-h-[400px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-none focus:border-primary focus:outline-none console-text"
-                autoFocus
-              />
+            <div className="flex-1 p-4 overflow-auto space-y-4">
+              {/* System Instructions */}
+              <div className="flex flex-col h-[calc(50%-8px)]">
+                <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                  <Settings2 className="h-3 w-3" />
+                  System Instructions
+                </label>
+                <textarea
+                  value={systemInstructions}
+                  onChange={(e) => setSystemInstructions(e.target.value)}
+                  placeholder="Optional: Add system-wide instructions..."
+                  className="w-full flex-1 min-h-[200px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-none focus:border-primary focus:outline-none console-text"
+                  autoFocus
+                />
+              </div>
+              
+              {/* Prompt */}
+              <div className="flex flex-col h-[calc(50%-8px)]">
+                <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                  <Type className="h-3 w-3" />
+                  Prompt
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder='Add trigger words here (e.g., "include this at the beginning: example_trigger, ")'
+                  className="w-full flex-1 min-h-[200px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-none focus:border-primary focus:outline-none console-text"
+                />
+              </div>
             </div>
 
             {/* Footer */}
             <div className="px-4 py-3 border-t border-border bg-secondary/30 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                These instructions guide the AI's behavior for all image descriptions
+                Both fields auto-save when you close this modal
               </span>
               <Button
                 onClick={() => setIsSystemModalOpen(false)}
