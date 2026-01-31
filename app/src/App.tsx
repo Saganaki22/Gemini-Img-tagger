@@ -68,7 +68,7 @@ Example Output (Demonstrating the Hierarchy)
 Input: A photo of an astronaut sitting in a retro diner.
 Model Output:
 A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in a red vinyl booth. The suit features detailed mechanical couplings, a reflective gold-tinted visor obscuring the face, and fabric wrinkling at the joints suggesting heavy, stiff material. The figure's gloved hands rest motionless on a white laminate table surface. To the right of the astronaut, a half-empty glass bottle of cola sits on a paper napkin. The setting appears to be a mid-20th-century American diner, characterized by a checkered black-and-white tile floor, chrome trim along the counter, and large glass windows revealing a dark, starless exterior. The interior lighting is warm and artificial, likely overhead fluorescent, casting soft, diffuse reflections on the astronaut's helmet and the chrome surfaces. The image has the visual characteristics of a cinematic film still, featuring a shallow depth of field that keeps the astronaut in sharp focus while the background diner elements are slightly softened. The color palette contrasts the clinical, sterile white of the spacesuit against the warm, saturated reds and teals of the diner interior. There is a slight layer of film grain visible across the image, giving it a tactile, analog texture.`);
-  const [prompt, setPrompt] = useState('include this at the beggining of the description:');
+  const [prompt, setPrompt] = useState('Include this at the beggining of the description: example_trigger_word, ');
   const [batchSize, setBatchSize] = useState(5);
 
   // Images
@@ -108,6 +108,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   const isStoppedRef = useRef(false);
   const currentBatchIndexRef = useRef(0);
   const itemsToProcessRef = useRef<ImageItem[]>([]);
+  const pendingRerunsRef = useRef<Set<string>>(new Set());
 
   // Beep sound function
   const playBeep = useCallback(() => {
@@ -389,6 +390,13 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       const image = images.find(img => img.id === id);
       if (!image) return;
 
+      // If image is currently processing, mark it for rerun after current batch
+      if (image.status === 'processing') {
+        pendingRerunsRef.current.add(id);
+        addLog(`Image ${image.name} marked for reprocess after current batch`, 'info');
+        return;
+      }
+
       setImages((prev) =>
         prev.map((img) =>
           img.id === id ? { ...img, status: 'pending', result: undefined, error: undefined } : img
@@ -397,7 +405,6 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       addLog(`Queued ${id} for reprocessing`, 'info');
 
       // If processing is idle, process this single image immediately
-      // Don't check itemsToProcessRef because it may have old batch data when paused
       if (processingState === 'idle') {
         setTimeout(() => {
           processSingleImage({ ...image, status: 'pending' });
@@ -590,6 +597,29 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       addToast(`Batch complete! ${doneCount} images processed.`, 'success');
     }
 
+    // Process any pending reruns
+    if (pendingRerunsRef.current.size > 0 && !isStoppedRef.current) {
+      const rerunIds = Array.from(pendingRerunsRef.current);
+      pendingRerunsRef.current.clear();
+      
+      addLog(`Processing ${rerunIds.length} rerun request(s)`, 'info');
+      
+      // Reset rerun images to pending
+      setImages((prev) =>
+        prev.map((img) =>
+          rerunIds.includes(img.id) ? { ...img, status: 'pending', result: undefined, error: undefined } : img
+        )
+      );
+      
+      // Process each rerun
+      for (const id of rerunIds) {
+        const image = images.find(img => img.id === id);
+        if (image) {
+          await processSingleImage({ ...image, status: 'pending' });
+        }
+      }
+    }
+
     // Reset refs when complete
     itemsToProcessRef.current = [];
     currentBatchIndexRef.current = 0;
@@ -601,7 +631,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     setElapsedTime(0);
     setEstimatedTimeRemaining(null);
     abortControllerRef.current = null;
-  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, processingState, addToast, addLog, playBeep]);
+  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, processingState, addToast, addLog, playBeep, processSingleImage]);
 
   // Pause
   const handlePause = useCallback(() => {
@@ -844,7 +874,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe this image in detail..."
+                  placeholder="Include this at the beggining of the description: "
                   className="bg-secondary/50 border-border resize-none min-h-[80px]"
                 />
               </div>
