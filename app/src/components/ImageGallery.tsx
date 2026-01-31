@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Download, RefreshCw, X, FileText, Check, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Download, RefreshCw, X, FileText, Check, Maximize2, ChevronLeft, ChevronRight, Grid3X3, Grid2X2, List, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { ImageItem } from '@/types';
 import { useLongPress } from '@/hooks/useLongPress';
+
+type ViewMode = 'grid-3' | 'grid-6' | 'list';
+type SortOrder = 'asc' | 'desc';
 
 interface ImageGalleryProps {
   images: ImageItem[];
@@ -455,6 +458,118 @@ function ImageCard({
   );
 }
 
+// List View Item Component
+function ListViewItem({
+  image,
+  isSelected,
+  onToggle,
+  onDelete,
+  onRerun,
+  onOpenModal,
+  disabled,
+}: {
+  image: ImageItem;
+  isSelected: boolean;
+  onToggle: (isCtrlPressed: boolean) => void;
+  onDelete: () => void;
+  onRerun: () => void;
+  onOpenModal: () => void;
+  disabled: boolean;
+}) {
+  const getStatusClass = () => {
+    switch (image.status) {
+      case 'done':
+        return 'status-done';
+      case 'processing':
+        return 'status-processing';
+      case 'error':
+        return 'status-error';
+      default:
+        return 'status-pending';
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors',
+        isSelected && 'ring-2 ring-primary'
+      )}
+      onClick={(e) => onToggle(e.ctrlKey || e.metaKey)}
+    >
+      {/* Thumbnail */}
+      <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-black/50">
+        <img
+          src={image.preview}
+          alt={image.name}
+          className="w-full h-full object-cover"
+        />
+        {image.status === 'processing' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate" title={image.name}>
+          {image.name}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={cn('text-xs px-2 py-0.5 rounded-full', getStatusClass())}>
+            {image.status === 'done' ? 'Done' : image.status === 'processing' ? 'Processing' : image.status === 'error' ? 'Error' : 'Pending'}
+          </span>
+          {image.result && (
+            <span className="text-xs text-muted-foreground">
+              {image.result.length} chars
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenModal();
+          }}
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRerun();
+          }}
+          disabled={disabled || image.status === 'processing'}
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          disabled={disabled}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ImageGallery({
   images,
   selectedIds,
@@ -465,6 +580,8 @@ export function ImageGallery({
   isProcessing,
 }: ImageGalleryProps) {
   const [modalImageId, setModalImageId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid-6');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const handleOpenModal = useCallback((id: string) => {
     setModalImageId(id);
@@ -477,15 +594,145 @@ export function ImageGallery({
   const handleNavigate = useCallback((direction: 'prev' | 'next') => {
     if (!modalImageId) return;
     
-    const currentIndex = images.findIndex((img) => img.id === modalImageId);
+    const currentIndex = sortedImages.findIndex((img) => img.id === modalImageId);
     if (currentIndex === -1) return;
 
     let newIndex: number;
     if (direction === 'prev') {
-      newIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+      newIndex = currentIndex > 0 ? currentIndex - 1 : sortedImages.length - 1;
     } else {
-      newIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+      newIndex = currentIndex < sortedImages.length - 1 ? currentIndex + 1 : 0;
     }
+
+    setModalImageId(sortedImages[newIndex].id);
+  }, [modalImageId]);
+
+  // Sort images
+  const sortedImages = useMemo(() => {
+    return [...images].sort((a, b) => {
+      if (sortOrder === 'asc') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    });
+  }, [images, sortOrder]);
+
+  const modalImage = modalImageId ? sortedImages.find((img) => img.id === modalImageId) : null;
+
+  if (images.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+          <FileText className="h-8 w-8 opacity-50" />
+        </div>
+        <p className="text-sm">No images uploaded yet</p>
+        <p className="text-xs mt-1">Upload images to get started</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Controls Header */}
+      <div className="flex items-center justify-between mb-4">
+        {/* View Mode Buttons */}
+        <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
+          <Button
+            variant={viewMode === 'grid-3' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => setViewMode('grid-3')}
+            title="3 columns"
+          >
+            <Grid2X2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'grid-6' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => setViewMode('grid-6')}
+            title="6 columns"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => setViewMode('list')}
+            title="List view"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Sort Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+        >
+          <ArrowUpDown className="h-4 w-4" />
+          {sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+          <span className="hidden sm:inline">{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</span>
+        </Button>
+      </div>
+
+      {/* Image Grid/List */}
+      {viewMode === 'list' ? (
+        <div className="space-y-2">
+          {sortedImages.map((image) => (
+            <ListViewItem
+              key={image.id}
+              image={image}
+              isSelected={selectedIds.has(image.id)}
+              onToggle={(isCtrlPressed) => onToggleSelection(image.id, isCtrlPressed)}
+              onDelete={() => onDelete(image.id)}
+              onRerun={() => onRerun(image.id)}
+              onOpenModal={() => handleOpenModal(image.id)}
+              disabled={isProcessing}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={cn(
+          'grid gap-4',
+          viewMode === 'grid-3' && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+          viewMode === 'grid-6' && 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+        )}>
+          {sortedImages.map((image) => (
+            <ImageCard
+              key={image.id}
+              image={image}
+              isSelected={selectedIds.has(image.id)}
+              onToggle={(isCtrlPressed) => onToggleSelection(image.id, isCtrlPressed)}
+              onDelete={() => onDelete(image.id)}
+              onRerun={() => onRerun(image.id)}
+              onUpdateResult={(result) => onUpdateResult(image.id, result)}
+              onOpenModal={() => handleOpenModal(image.id)}
+              disabled={isProcessing}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Image Modal */}
+      {modalImage && (
+        <ImageModal
+          image={modalImage}
+          images={sortedImages}
+          onClose={handleCloseModal}
+          onNavigate={handleNavigate}
+          onUpdateResult={onUpdateResult}
+          onRerun={onRerun}
+        />
+      )}
+    </>
+  );
+}
+}
 
     setModalImageId(images[newIndex].id);
   }, [modalImageId, images]);
