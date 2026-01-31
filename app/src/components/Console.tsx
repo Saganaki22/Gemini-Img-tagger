@@ -15,7 +15,12 @@ interface ConsoleProps {
 export function Console({ logs, isExpanded, onToggleExpand }: ConsoleProps) {
   const [fontSizeIndex, setFontSizeIndex] = useState(2);
   const [copied, setCopied] = useState(false);
+  const [minimizedHeight, setMinimizedHeight] = useState(96);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const resizeRef = useRef<HTMLDivElement>(null);
+  const isResizing = useRef(false);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -54,6 +59,39 @@ export function Console({ logs, isExpanded, onToggleExpand }: ConsoleProps) {
     }
   };
 
+  // Resize handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      const deltaY = startY.current - e.clientY;
+      const newHeight = Math.max(80, Math.min(400, startHeight.current + deltaY));
+      setMinimizedHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    startY.current = e.clientY;
+    startHeight.current = minimizedHeight;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  };
+
   const consoleContent = (
     <div
       ref={scrollRef}
@@ -79,14 +117,16 @@ export function Console({ logs, isExpanded, onToggleExpand }: ConsoleProps) {
   if (!isExpanded) {
     return (
       <div
-        onClick={onToggleExpand}
         className={cn(
-          'bg-black/80 border border-border rounded-lg overflow-hidden cursor-pointer',
+          'bg-black/80 border border-border rounded-lg overflow-hidden',
           'transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10',
-          'group'
+          'group relative'
         )}
       >
-        <div className="flex items-center justify-between px-3 py-2 bg-secondary/50 border-b border-border">
+        <div 
+          onClick={onToggleExpand}
+          className="flex items-center justify-between px-3 py-2 bg-secondary/50 border-b border-border cursor-pointer"
+        >
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-primary" />
             <span className="text-xs font-medium uppercase tracking-wider">Live Console</span>
@@ -94,15 +134,26 @@ export function Console({ logs, isExpanded, onToggleExpand }: ConsoleProps) {
           <Maximize2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
         <div
-          className="h-24 overflow-hidden console-text p-3 text-xs opacity-70"
-          style={{ maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }}
+          className="overflow-hidden console-text p-3 text-xs opacity-70"
+          style={{ 
+            height: `${minimizedHeight}px`,
+            maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)'
+          }}
         >
-          {logs.slice(-5).map((log) => (
+          {logs.slice(-10).map((log) => (
             <div key={log.id} className={cn('mb-0.5 truncate', getLogColor(log.type))}>
               <span className="opacity-50">[{log.timestamp.toLocaleTimeString()}]</span>{' '}
               {log.message}
             </div>
           ))}
+        </div>
+        {/* Resize handle */}
+        <div
+          ref={resizeRef}
+          onMouseDown={handleResizeStart}
+          className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-primary/20 transition-colors flex items-center justify-center"
+        >
+          <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
       </div>
     );

@@ -105,6 +105,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
   const isPausedRef = useRef(false);
+  const isStoppedRef = useRef(false);
   const currentBatchIndexRef = useRef(0);
   const itemsToProcessRef = useRef<ImageItem[]>([]);
 
@@ -141,29 +142,51 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Timer effect
+  // Timer effect with performance tracking
+  const completedTimestampsRef = useRef<{ count: number; lastUpdate: number }>({ count: 0, lastUpdate: 0 });
+  
   useEffect(() => {
     if (processingState === 'running' && startTime) {
       timerIntervalRef.current = setInterval(() => {
-        const now = new Date();
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime.getTime()) / 1000);
         setElapsedTime(elapsed);
         
-        // Calculate estimated time remaining
+        // Calculate estimated time remaining based on actual processing rate
         const completedCount = images.filter(img => img.status === 'done').length;
-        const totalCount = itemsToProcessRef.current.length;
+        const processingCount = images.filter(img => img.status === 'processing').length;
+        const totalInQueue = itemsToProcessRef.current.length;
         
-        if (completedCount > 0 && totalCount > 0) {
-          const avgTimePerImage = elapsed / completedCount;
-          const remaining = totalCount - completedCount;
-          setEstimatedTimeRemaining(Math.floor(avgTimePerImage * remaining));
+        // Update tracking when images complete
+        if (completedCount !== completedTimestampsRef.current.count) {
+          completedTimestampsRef.current = { 
+            count: completedCount, 
+            lastUpdate: now 
+          };
         }
-      }, 1000);
+        
+        if (completedCount > 0 && totalInQueue > 0) {
+          // Calculate average time per image
+          const avgTimePerImage = elapsed / completedCount;
+          const remainingImages = totalInQueue - completedCount;
+          
+          // Estimate: remaining images * avg time per image
+          // Add a small buffer for processing images
+          const processingBuffer = processingCount > 0 ? avgTimePerImage * 0.5 : 0;
+          const estimatedRemaining = Math.floor((avgTimePerImage * remainingImages) + processingBuffer);
+          
+          setEstimatedTimeRemaining(Math.max(0, estimatedRemaining));
+        } else if (processingCount > 0) {
+          // If no completed yet but processing, show rough estimate
+          setEstimatedTimeRemaining(null);
+        }
+      }, 500); // Update every 500ms for smoother UI
     } else {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
+      completedTimestampsRef.current = { count: 0, lastUpdate: 0 };
     }
     
     return () => {
@@ -274,17 +297,114 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     addLog('Images deleted', 'info');
   }, [selectedIds, addToast, addLog]);
 
+  // Process single image immediately
+  const processSingleImage = useCallback(async (image: ImageItem) => {
+    if (!apiKey) {
+      addToast('Please enter your API key', 'error');
+      return;
+    }
+
+    setProcessingState('running');
+    addLog(`Processing single image: ${image.name}`, 'info');
+
+    try {
+      const payload = {
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inline_data: {
+                  mime_type: image.mime,
+                  data: image.data,
+                },
+              },
+              {
+                text: systemInstructions
+                  ? `${systemInstructions}\n\n${prompt}`
+                  : prompt,
+              },
+            ],
+          },
+        ],
+      };
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message || 'API error');
+      }
+
+      const fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (!fullText.trim()) {
+        throw new Error('Empty response from API');
+      }
+
+      // Update image with result
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === image.id
+            ? { ...img, status: 'done', result: fullText }
+            : img
+        )
+      );
+
+      addLog(`Processed: ${image.name}`, 'success');
+      playBeep();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === image.id ? { ...img, status: 'error', error: errorMessage } : img
+        )
+      );
+
+      addLog(`Failed: ${image.name} - ${errorMessage}`, 'error');
+    } finally {
+      setProcessingState('idle');
+    }
+  }, [apiKey, model, systemInstructions, prompt, addLog, addToast, playBeep]);
+
   // Rerun image
   const handleRerun = useCallback(
     (id: string) => {
+      const image = images.find(img => img.id === id);
+      if (!image) return;
+
       setImages((prev) =>
         prev.map((img) =>
           img.id === id ? { ...img, status: 'pending', result: undefined, error: undefined } : img
         )
       );
       addLog(`Queued ${id} for reprocessing`, 'info');
+
+      // If processing is idle and there's no active batch queue, process immediately
+      if (processingState === 'idle' && itemsToProcessRef.current.length === 0) {
+        // Process just this one image
+        setTimeout(() => {
+          processSingleImage({ ...image, status: 'pending' });
+        }, 100);
+      }
     },
-    [addLog]
+    [images, processingState, processSingleImage, addLog]
   );
 
   // Update result
@@ -325,6 +445,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     setProcessingState('running');
     abortControllerRef.current = new AbortController();
     isPausedRef.current = false;
+    isStoppedRef.current = false;
+    completedTimestampsRef.current = { count: 0, lastUpdate: 0 };
+    setStartTime(new Date());
 
     addLog(
       `Starting batch: ${itemsToProcess.length} images with ${model}`,
@@ -443,8 +566,8 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
         return;
       }
 
-      // Check if stopped
-      if (abortControllerRef.current?.signal.aborted) {
+      // Check if stopped (current batch will finish, but don't continue to next)
+      if (isStoppedRef.current) {
         addLog('Batch processing stopped', 'warn');
         break;
       }
@@ -456,7 +579,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }
 
     // Only play sound and show completion if not stopped/paused (i.e., completed successfully)
-    if (!abortControllerRef.current?.signal.aborted) {
+    if (!isStoppedRef.current && !isPausedRef.current) {
       playBeep();
       const doneCount = images.filter((img) => img.status === 'done').length;
       addToast(`Batch complete! ${doneCount} images processed.`, 'success');
@@ -465,6 +588,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     // Reset refs when complete
     itemsToProcessRef.current = [];
     currentBatchIndexRef.current = 0;
+    isStoppedRef.current = false;
+    isPausedRef.current = false;
+    completedTimestampsRef.current = { count: 0, lastUpdate: 0 };
     setProcessingState('idle');
     setStartTime(null);
     setElapsedTime(0);
@@ -474,12 +600,14 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Pause
   const handlePause = useCallback(() => {
+    isPausedRef.current = true;
     setProcessingState('idle');
     addLog('Batch paused', 'warn');
   }, [addLog]);
 
   // Stop
   const handleStop = useCallback(() => {
+    isStoppedRef.current = true;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -704,7 +832,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                       </label>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
-                      <p>Include this at the beginning of the description. Example: &quot;triggerword, &quot; to add trigger words in captions</p>
+                      <p>For trigger word add &quot;include this at the beggining of the description: example,&quot;</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

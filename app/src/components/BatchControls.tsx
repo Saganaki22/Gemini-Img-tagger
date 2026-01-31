@@ -103,9 +103,11 @@ export function BatchControls({
       {state === 'running' && (
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Elapsed: {formatTime(elapsedTime)}</span>
-          {estimatedTimeRemaining !== null && estimatedTimeRemaining > 0 && (
+          {estimatedTimeRemaining !== null && estimatedTimeRemaining > 0 ? (
             <span>Est. remaining: {formatTime(estimatedTimeRemaining)}</span>
-          )}
+          ) : estimatedTimeRemaining === null && elapsedTime > 5 ? (
+            <span className="animate-pulse">Calculating...</span>
+          ) : null}
         </div>
       )}
 
