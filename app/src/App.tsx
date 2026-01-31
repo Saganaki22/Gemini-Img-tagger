@@ -396,9 +396,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       );
       addLog(`Queued ${id} for reprocessing`, 'info');
 
-      // If processing is idle and there's no active batch queue, process immediately
-      if (processingState === 'idle' && itemsToProcessRef.current.length === 0) {
-        // Process just this one image
+      // If processing is idle, process this single image immediately
+      // Don't check itemsToProcessRef because it may have old batch data when paused
+      if (processingState === 'idle') {
         setTimeout(() => {
           processSingleImage({ ...image, status: 'pending' });
         }, 100);
@@ -421,11 +421,16 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       return;
     }
 
-    // If resuming, use the existing items
+    // Determine which images to process
     let itemsToProcess: ImageItem[];
-    if (itemsToProcessRef.current.length > 0 && processingState === 'idle') {
-      // Resume from where we left off
-      itemsToProcess = itemsToProcessRef.current;
+    const hasActiveBatch = itemsToProcessRef.current.length > 0 && processingState === 'idle';
+    
+    if (hasActiveBatch) {
+      // Resume from pause - get fresh status from current images state
+      itemsToProcess = images.filter(img => 
+        itemsToProcessRef.current.some(refImg => refImg.id === img.id) && 
+        img.status !== 'done'
+      );
     } else {
       // Start fresh
       itemsToProcess = selectedIds.size > 0
