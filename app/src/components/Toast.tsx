@@ -46,7 +46,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     <div
       className={cn(
         'flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg backdrop-blur-sm',
-        'transition-all duration-300',
+        'transition-all duration-300 pointer-events-auto',
         isExiting ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0 animate-slide-up',
         toastStyles[toast.type]
       )}
@@ -60,7 +60,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
           setIsExiting(true);
           setTimeout(onRemove, 300);
         }}
-        className="opacity-70 hover:opacity-100 transition-opacity z-50"
+        className="opacity-70 hover:opacity-100 transition-opacity pointer-events-auto"
       >
         <X className="h-4 w-4" />
       </button>

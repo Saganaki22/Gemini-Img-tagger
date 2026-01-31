@@ -312,20 +312,20 @@ function ImageCard({
             </div>
           )}
           
-          {/* Maximize Button - appears on hover, hidden when Ctrl/Cmd is pressed */}
+          {/* Maximize Button - appears on hover, doesn't open modal when Ctrl/Cmd is pressed */}
           {isHovered && image.status !== 'processing' && (
             <div
-              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!(e.ctrlKey || e.metaKey)) {
-                  onOpenModal();
-                }
-              }}
+              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <button
-                className="w-14 h-14 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center transition-colors shadow-lg pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
+                className="w-14 h-14 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center transition-colors shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Only open modal if Ctrl/Cmd is NOT pressed
+                  if (!(e.ctrlKey || e.metaKey)) {
+                    onOpenModal();
+                  }
+                }}
               >
                 <Maximize2 className="h-6 w-6 text-black" />
               </button>
