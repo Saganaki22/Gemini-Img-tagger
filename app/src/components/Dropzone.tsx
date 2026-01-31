@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import JSZip from 'jszip';
 
 interface DropzoneProps {
-  onImagesAdd: (images: { name: string; mime: string; data: string; preview: string }[]) => void;
+  onImagesAdd: (images: { name: string; mime: string; data: string; preview: string; result?: string }[]) => void;
   disabled?: boolean;
 }
 
@@ -35,13 +35,37 @@ export function Dropzone({ onImagesAdd, disabled }: DropzoneProps) {
     });
   };
 
-  const processZipFile = async (file: File): Promise<{ name: string; mime: string; data: string; preview: string }[]> => {
-    const images: { name: string; mime: string; data: string; preview: string }[] = [];
+  const processZipFile = async (file: File): Promise<{ name: string; mime: string; data: string; preview: string; result?: string }[]> => {
+    const images: { name: string; mime: string; data: string; preview: string; result?: string }[] = [];
+    const textFiles: Map<string, string> = new Map();
     
     try {
       const zip = await JSZip.loadAsync(file);
       const imageFiles: JSZip.JSZipObject[] = [];
 
+      // First pass: collect all text files
+      zip.forEach((_, zipEntry) => {
+        if (!zipEntry.dir && zipEntry.name.endsWith('.txt')) {
+          // Store text file for later association
+          const baseName = zipEntry.name.replace(/\.txt$/i, '');
+          textFiles.set(baseName.toLowerCase(), '');
+        }
+      });
+
+      // Extract text content
+      for (const [fileName] of textFiles) {
+        const txtEntry = zip.file(fileName + '.txt') || zip.file(fileName + '.TXT');
+        if (txtEntry) {
+          try {
+            const content = await txtEntry.async('text');
+            textFiles.set(fileName, content);
+          } catch {
+            // Skip failed text extractions
+          }
+        }
+      }
+
+      // Second pass: collect images
       zip.forEach((_, zipEntry) => {
         if (!zipEntry.dir && /\.(jpe?g|png|webp|gif|bmp)$/i.test(zipEntry.name)) {
           imageFiles.push(zipEntry);
@@ -53,7 +77,16 @@ export function Dropzone({ onImagesAdd, disabled }: DropzoneProps) {
           const blob = await imgEntry.async('blob');
           const proxyFile = new File([blob], imgEntry.name, { type: 'image/png' });
           const image = await processFile(proxyFile);
-          if (image) images.push(image);
+          if (image) {
+            // Check for matching text file
+            const baseName = imgEntry.name.replace(/\.[^/.]+$/, '').toLowerCase();
+            const textContent = textFiles.get(baseName);
+            if (textContent) {
+              images.push({ ...image, result: textContent, status: 'done' });
+            } else {
+              images.push(image);
+            }
+          }
         } catch {
           // Skip failed extractions
         }

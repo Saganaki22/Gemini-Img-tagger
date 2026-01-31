@@ -232,19 +232,26 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Add images
   const handleImagesAdd = useCallback(
-    (newImages: { name: string; mime: string; data: string; preview: string }[]) => {
+    (newImages: { name: string; mime: string; data: string; preview: string; result?: string }[]) => {
       const items: ImageItem[] = newImages.map((img) => ({
         id: Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
         name: img.name,
         mime: img.mime,
         data: img.data,
         preview: img.preview,
-        status: 'pending',
+        status: img.result ? 'done' : 'pending',
+        result: img.result,
       }));
 
       setImages((prev) => [...prev, ...items]);
-      addToast(`Added ${items.length} image${items.length > 1 ? 's' : ''}`, 'success');
-      addLog(`Added ${items.length} image(s) to queue`, 'success');
+      const withText = items.filter(img => img.result).length;
+      if (withText > 0) {
+        addToast(`Added ${items.length} image${items.length > 1 ? 's' : ''} (${withText} with captions)`, 'success');
+        addLog(`Added ${items.length} image(s) to queue (${withText} with existing captions)`, 'success');
+      } else {
+        addToast(`Added ${items.length} image${items.length > 1 ? 's' : ''}`, 'success');
+        addLog(`Added ${items.length} image(s) to queue`, 'success');
+      }
     },
     [addToast, addLog]
   );

@@ -467,8 +467,6 @@ function ListViewItem({
   onRerun,
   onOpenModal,
   disabled,
-  isDragging,
-  onDragEnter,
 }: {
   image: ImageItem;
   isSelected: boolean;
@@ -477,8 +475,6 @@ function ListViewItem({
   onRerun: () => void;
   onOpenModal: () => void;
   disabled: boolean;
-  isDragging: boolean;
-  onDragEnter: () => void;
 }) {
   const getStatusClass = () => {
     switch (image.status) {
@@ -493,20 +489,18 @@ function ListViewItem({
     }
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    const isMultiSelect = e.ctrlKey || e.metaKey;
+    onToggle(isMultiSelect);
+  };
+
   return (
     <div
       className={cn(
-        'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors',
-        isSelected && 'ring-2 ring-primary',
-        isDragging && 'bg-primary/10'
+        'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer',
+        isSelected && 'ring-2 ring-primary'
       )}
-      onClick={(e) => onToggle(e.ctrlKey || e.metaKey)}
-      onMouseEnter={() => {
-        if (isDragging) {
-          onDragEnter();
-        }
-      }}
-      style={{ userSelect: 'none' }}
+      onClick={handleClick}
     >
       {/* Thumbnail */}
       <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-black/50">
@@ -730,32 +724,19 @@ export function ImageGallery({
 
       {/* Image Grid/List */}
       {viewMode === 'list' ? (
-        <div 
-          className="space-y-2"
-          onMouseDown={(e) => {
-            if (e.ctrlKey || e.metaKey) {
-              e.preventDefault();
-            }
-          }}
-        >
+        <div className="space-y-2">
           {sortedImages.map((image) => (
             <ListViewItem
               key={image.id}
               image={image}
               isSelected={selectedIds.has(image.id)}
               onToggle={(isCtrlPressed) => {
-                if (isCtrlPressed && !isDragging) {
-                  handleDragStart(image.id, true);
-                } else {
-                  onToggleSelection(image.id, isCtrlPressed);
-                }
+                onToggleSelection(image.id, isCtrlPressed);
               }}
               onDelete={() => onDelete(image.id)}
               onRerun={() => onRerun(image.id)}
               onOpenModal={() => handleOpenModal(image.id)}
               disabled={isProcessing}
-              isDragging={isDragging}
-              onDragEnter={() => handleDragEnter(image.id)}
             />
           ))}
         </div>
