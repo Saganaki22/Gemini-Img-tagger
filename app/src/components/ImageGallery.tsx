@@ -808,7 +808,8 @@ export function ImageGallery({
             <select
               value={itemsPerPage === Infinity ? 'all' : itemsPerPage}
               onChange={(e) => setItemsPerPage(e.target.value === 'all' ? Infinity : parseInt(e.target.value))}
-              className="h-8 px-2 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:border-primary"
+              className="h-8 px-2 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:border-primary/50 transition-colors"
+              style={{ colorScheme: 'dark' }}
             >
               <option value={30}>30</option>
               <option value={60}>60</option>

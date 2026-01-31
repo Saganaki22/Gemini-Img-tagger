@@ -355,3 +355,31 @@
 .animate-gentle-pulse {
   animation: gentle-pulse 3s ease-in-out infinite;
 }
+
+/* Custom select dropdown styling for yellow/gold theme */
+select option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  padding: 8px;
+}
+
+select option:checked {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+select option:hover {
+  background-color: hsl(var(--primary) / 0.2);
+}
+
+/* Firefox specific styling */
+select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 hsl(var(--foreground));
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+select:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 1px hsl(var(--primary));
+}
