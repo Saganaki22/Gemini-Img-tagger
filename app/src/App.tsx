@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search } from 'lucide-react';
+import { Sparkles, Settings2, Github, Maximize2, X, Volume2, VolumeX, Search, Trash2, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import { HelpModal } from '@/components/HelpModal';
 import { ToastContainer, useToast } from '@/components/Toast';
 import { useSecureStorage } from '@/hooks/useSecureStorage';
 import { useLogger } from '@/hooks/useLogger';
+import { useMemoryMonitor } from '@/hooks/usePerformance';
 import type { ImageItem, ProcessingState } from '@/types';
 import JSZip from 'jszip';
 
@@ -105,6 +106,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Logger
   const { logs, addLog } = useLogger();
+
+  // Memory monitoring (Chrome only)
+  const memory = useMemoryMonitor();
 
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -828,6 +832,20 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
           {/* Right - Actions */}
           <div className="flex items-center gap-2">
+            {/* Memory Monitor (Chrome only) */}
+            {memory && memory.percentage > 70 && (
+              <div 
+                className={cn(
+                  'hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium',
+                  memory.percentage > 80 ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                )}
+                title="Memory usage (Chrome only)"
+              >
+                <Gauge className="h-3.5 w-3.5" />
+                <span>{Math.round(memory.used)}MB</span>
+              </div>
+            )}
+            
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors"
@@ -835,6 +853,23 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             >
               <Search className="h-5 w-5" />
             </button>
+            
+            {/* Clear Images Button - only show when images exist */}
+            {images.length > 0 && (
+              <button
+                onClick={() => {
+                  setImages([]);
+                  setSelectedIds(new Set());
+                  addToast('Gallery cleared - memory freed', 'success');
+                  addLog('Gallery cleared to free memory', 'info');
+                }}
+                className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-destructive hover:text-white transition-colors"
+                title="Clear all images to free memory"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
+            
             <button
               onClick={() => setIsMuted(!isMuted)}
               className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors"

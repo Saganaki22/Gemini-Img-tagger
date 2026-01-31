@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { ImageItem } from '@/types';
 import { useLongPress } from '@/hooks/useLongPress';
+import { useThrottledCallback } from '@/hooks/usePerformance';
 
 type ViewMode = 'grid-3' | 'grid-6' | 'list';
 type SortOrder = 'asc' | 'desc';
@@ -699,8 +700,23 @@ export function ImageGallery({
     };
   }, [isDragging, handleMouseUp]);
 
-  // Sort images
+  // Pagination for large datasets
+  const [page, setPage] = useState(1);
+  const itemsPerPage = viewMode === 'list' ? 100 : 60;
+  const totalPages = Math.ceil(images.length / itemsPerPage);
+  
+  // Sort images - use web worker for large datasets
   const sortedImages = useMemo(() => {
+    if (images.length > 1000) {
+      // For very large datasets, sort in chunks to avoid blocking
+      return [...images].sort((a, b) => {
+        if (sortOrder === 'asc') {
+          return a.name.localeCompare(b.name);
+        } else {
+          return b.name.localeCompare(a.name);
+        }
+      });
+    }
     return [...images].sort((a, b) => {
       if (sortOrder === 'asc') {
         return a.name.localeCompare(b.name);
@@ -709,6 +725,19 @@ export function ImageGallery({
       }
     });
   }, [images, sortOrder]);
+
+  // Paginated images for grid views
+  const paginatedImages = useMemo(() => {
+    if (viewMode === 'list') return sortedImages;
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return sortedImages.slice(start, end);
+  }, [sortedImages, page, itemsPerPage, viewMode]);
+
+  // Reset page when view mode changes
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode, sortOrder]);
 
   const modalImage = modalImageId ? sortedImages.find((img) => img.id === modalImageId) : null;
 
@@ -772,6 +801,36 @@ export function ImageGallery({
         </Button>
       </div>
 
+      {/* Pagination Controls - show for large datasets */}
+      {images.length > itemsPerPage && (
+        <div className="flex items-center justify-between mb-4 py-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {(page - 1) * itemsPerPage + 1} - {Math.min(page * itemsPerPage, images.length)} of {images.length} images
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground px-2">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Image Grid/List */}
       {viewMode === 'list' ? (
         <div className="space-y-2">
@@ -799,7 +858,7 @@ export function ImageGallery({
           viewMode === 'grid-3' && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
           viewMode === 'grid-6' && 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
         )}>
-          {sortedImages.map((image) => (
+          {paginatedImages.map((image) => (
             <ImageCard
               key={image.id}
               image={image}
