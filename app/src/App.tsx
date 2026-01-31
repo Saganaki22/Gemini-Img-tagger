@@ -139,9 +139,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
         // Staggered start time for arpeggio effect
         const startTime = now + (i * 0.08);
         
-        // Envelope: quick attack, long decay
+        // Envelope: quick attack, long decay (volume at 55%)
         gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.6, startTime + 0.02);
+        gain.gain.linearRampToValueAtTime(0.55, startTime + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.5);
         
         osc.connect(gain);
@@ -199,8 +199,11 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     // Restore original title
     document.title = originalTitleRef.current;
     
-    // Reset favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    // Reset favicon - try multiple selectors
+    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (!favicon) {
+      favicon = document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement;
+    }
     if (favicon) {
       favicon.href = originalFaviconRef.current;
     }
@@ -208,11 +211,29 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Start completion effects
   const startCompletionEffects = useCallback(() => {
-    // Change favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) {
-      favicon.href = '/success.svg';
+    // Change favicon - try multiple selectors
+    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (!favicon) {
+      favicon = document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement;
     }
+    
+    // Create favicon link if it doesn't exist
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.type = 'image/svg+xml';
+      document.head.appendChild(favicon);
+    }
+    
+    // Store original and change to success
+    if (favicon && favicon.href !== '/success.svg') {
+      originalFaviconRef.current = favicon.href;
+    }
+    favicon.href = '/success.svg';
+    
+    // Force browser to refresh favicon by adding timestamp
+    const timestamp = Date.now();
+    favicon.href = `/success.svg?v=${timestamp}`;
     
     // Start sliding title animation
     animateSlidingTitle();
@@ -739,10 +760,8 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       const doneCount = images.filter((img) => img.status === 'done').length;
       addToast(`Batch complete! ${doneCount} images processed.`, 'success');
       
-      // Trigger completion effects if user is not on the page
-      if (document.hidden) {
-        startCompletionEffects();
-      }
+      // Trigger completion effects (favicon + sliding title)
+      startCompletionEffects();
     }
 
     // Process any pending reruns
