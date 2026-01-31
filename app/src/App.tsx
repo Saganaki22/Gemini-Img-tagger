@@ -106,6 +106,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   const abortControllerRef = useRef<AbortController | null>(null);
   const isPausedRef = useRef(false);
   const isStoppedRef = useRef(false);
+  const isSingleRerunRef = useRef(false);
   const currentBatchIndexRef = useRef(0);
   const itemsToProcessRef = useRef<ImageItem[]>([]);
   const pendingRerunsRef = useRef<Set<string>>(new Set());
@@ -380,6 +381,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
       addLog(`Failed: ${image.name} - ${errorMessage}`, 'error');
     } finally {
+      isSingleRerunRef.current = false;  // Clear single rerun flag
       setProcessingState('idle');
     }
   }, [apiKey, model, systemInstructions, prompt, addLog, addToast, playBeep]);
@@ -406,6 +408,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
       // If processing is idle, process this single image immediately
       if (processingState === 'idle') {
+        isSingleRerunRef.current = true;  // Mark as single rerun so batch doesn't auto-continue
         setTimeout(() => {
           processSingleImage({ ...image, status: 'pending' });
         }, 100);
@@ -432,7 +435,14 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     let itemsToProcess: ImageItem[];
     const hasActiveBatch = itemsToProcessRef.current.length > 0 && processingState === 'idle';
     
-    if (hasActiveBatch) {
+    // If this was a single rerun, clear the batch queue so we start fresh
+    if (isSingleRerunRef.current) {
+      itemsToProcessRef.current = [];
+      currentBatchIndexRef.current = 0;
+      isSingleRerunRef.current = false;
+    }
+    
+    if (hasActiveBatch && itemsToProcessRef.current.length > 0) {
       // Resume from pause - get fresh status from current images state
       itemsToProcess = images.filter(img => 
         itemsToProcessRef.current.some(refImg => refImg.id === img.id) && 
