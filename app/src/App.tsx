@@ -441,6 +441,11 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
     // Determine which images to process
     let itemsToProcess: ImageItem[];
+    
+    // Priority 1: If user has selected images, process those (start fresh)
+    // Priority 2: If resuming from pause with active batch
+    // Priority 3: Process all pending images
+    const hasSelectedImages = selectedIds.size > 0;
     const hasActiveBatch = itemsToProcessRef.current.length > 0 && processingState === 'idle';
     
     // If this was a single rerun, clear the batch queue so we start fresh
@@ -450,17 +455,22 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       isSingleRerunRef.current = false;
     }
     
-    if (hasActiveBatch && itemsToProcessRef.current.length > 0) {
+    if (hasSelectedImages) {
+      // User selected specific images - process those (ignore old batch)
+      itemsToProcess = images.filter((img) => 
+        selectedIds.has(img.id) && img.status !== 'done' && img.status !== 'processing'
+      );
+      itemsToProcessRef.current = itemsToProcess;
+      currentBatchIndexRef.current = 0;
+    } else if (hasActiveBatch) {
       // Resume from pause - get fresh status from current images state
       itemsToProcess = images.filter(img => 
         itemsToProcessRef.current.some(refImg => refImg.id === img.id) && 
         img.status !== 'done'
       );
     } else {
-      // Start fresh
-      itemsToProcess = selectedIds.size > 0
-        ? images.filter((img) => selectedIds.has(img.id) && img.status !== 'done' && img.status !== 'processing')
-        : images.filter((img) => img.status !== 'done' && img.status !== 'processing');
+      // Process all pending images
+      itemsToProcess = images.filter((img) => img.status !== 'done' && img.status !== 'processing');
       itemsToProcessRef.current = itemsToProcess;
       currentBatchIndexRef.current = 0;
     }
