@@ -37,7 +37,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     const timer = setTimeout(() => {
       setIsExiting(true);
       setTimeout(onRemove, 300);
-    }, 3000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [onRemove]);
