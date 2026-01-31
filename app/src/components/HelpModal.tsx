@@ -199,10 +199,8 @@ export function HelpModal() {
                   <span className="text-xl">💡</span> Pro Tips
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  <li>Use Ctrl+F to search for specific image names</li>
                   <li>Start with batch size 5, then increase based on your API limits</li>
                   <li>ZIP uploads with matching .txt files auto-load existing captions</li>
-                  <li>The scroll-to-top button appears after scrolling 1000px down</li>
                 </ul>
               </section>
 

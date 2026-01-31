@@ -896,7 +896,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className={cn(isSearchOpen && 'hidden sm:block')}>
               <h1 className="text-xl font-bold gradient-text">Gemini IMG Tagger</h1>
               <p className="text-xs text-muted-foreground">AI-powered image tagging with Gemini</p>
             </div>

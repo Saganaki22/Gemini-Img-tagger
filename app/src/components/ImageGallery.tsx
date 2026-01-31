@@ -289,6 +289,7 @@ function ImageCard({
             'active:scale-90'
           )}
           disabled={disabled}
+          title="Hold 1s to delete"
         >
           <X className="h-4 w-4" />
           {deleteProgress > 0 && (
@@ -580,6 +581,7 @@ function ListViewItem({
             onDelete();
           }}
           disabled={disabled}
+          title="Click to delete"
         >
           <X className="h-4 w-4" />
         </Button>

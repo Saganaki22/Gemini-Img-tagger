@@ -92,7 +92,14 @@ export function useToast() {
 
   const addToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => {
+      const newToasts = [...prev, { id, message, type }];
+      // Keep only the last 4 toasts (remove oldest if more than 4)
+      if (newToasts.length > 4) {
+        return newToasts.slice(newToasts.length - 4);
+      }
+      return newToasts;
+    });
   }, []);
 
   const removeToast = useCallback((id: string) => {
