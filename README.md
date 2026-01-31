@@ -7,7 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 
-![Open Graph Image](https://drbaph.is-a.dev/Gemini-Img-tagger/opengraph.jpg)
+![opengraph](https://github.com/user-attachments/assets/0ad352b1-60c8-47f0-8e36-b419b8017e7e)
+
 
 An intuitive, plug-and-play solution for batch tagging large image datasets using Google's Gemini AI models. Process hundreds of images with intelligent, context-aware descriptions optimized for machine learning training and visual indexing.
 
