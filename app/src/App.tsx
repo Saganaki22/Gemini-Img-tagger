@@ -90,6 +90,16 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // System Instructions Modal
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
+  const [modalFontSize, setModalFontSize] = useState(() => {
+    // Load from localStorage or default to 14
+    const saved = localStorage.getItem('gemini_img_tagger_modal_font_size');
+    return saved ? parseInt(saved, 10) : 14;
+  });
+
+  // Persist font size to localStorage
+  useEffect(() => {
+    localStorage.setItem('gemini_img_tagger_modal_font_size', modalFontSize.toString());
+  }, [modalFontSize]);
 
   // Help Modal
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -1165,8 +1175,21 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                 <Settings2 className="h-4 w-4 text-primary" />
                 System Instructions
               </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Autosaves on close</span>
+              <div className="flex items-center gap-4">
+                {/* Font Size Slider */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">A</span>
+                  <input
+                    type="range"
+                    min={10}
+                    max={20}
+                    value={modalFontSize}
+                    onChange={(e) => setModalFontSize(parseInt(e.target.value))}
+                    className="font-size-slider w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">A</span>
+                </div>
+                <span className="text-xs text-muted-foreground hidden sm:inline">Autosaves on close</span>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1179,9 +1202,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-4 overflow-auto space-y-4 flex flex-col">
-              {/* System Instructions */}
-              <div className="flex flex-col flex-1 min-h-[300px]">
+            <div className="flex-1 p-4 overflow-auto flex flex-col gap-4">
+              {/* System Instructions - 70% height */}
+              <div className="flex flex-col" style={{ height: '70%' }}>
                 <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
                   <Settings2 className="h-3 w-3" />
                   System Instructions
@@ -1190,13 +1213,14 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                   value={systemInstructions}
                   onChange={(e) => setSystemInstructions(e.target.value)}
                   placeholder="Optional: Add system-wide instructions..."
-                  className="w-full flex-1 min-h-[250px] sm:min-h-[300px] md:min-h-[350px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-y focus:border-primary focus:outline-none console-text"
+                  className="w-full flex-1 min-h-[200px] bg-secondary/50 border border-border rounded-lg p-4 resize-y focus:border-primary focus:outline-none console-text"
+                  style={{ fontSize: `${modalFontSize}px` }}
                   autoFocus
                 />
               </div>
               
-              {/* Prompt */}
-              <div className="flex flex-col flex-1 min-h-[300px]">
+              {/* Prompt - 30% height */}
+              <div className="flex flex-col" style={{ height: '30%' }}>
                 <label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
                   <Type className="h-3 w-3" />
                   Prompt
@@ -1205,7 +1229,8 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder='Add trigger words here (e.g., "include this at the beginning: example_trigger, ")'
-                  className="w-full flex-1 min-h-[250px] sm:min-h-[300px] md:min-h-[350px] bg-secondary/50 border border-border rounded-lg p-4 text-sm resize-y focus:border-primary focus:outline-none console-text"
+                  className="w-full flex-1 min-h-[100px] bg-secondary/50 border border-border rounded-lg p-4 resize-y focus:border-primary focus:outline-none console-text"
+                  style={{ fontSize: `${modalFontSize}px` }}
                 />
               </div>
             </div>
