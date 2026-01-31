@@ -216,7 +216,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     
     // Start sliding title animation
     animateSlidingTitle();
-  }, [animateMatrixTitle]);
+  }, [animateSlidingTitle]);
 
   // Handle visibility change
   useEffect(() => {
