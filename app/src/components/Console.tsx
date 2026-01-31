@@ -64,7 +64,7 @@ export function Console({ logs, isExpanded, onToggleExpand }: ConsoleProps) {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
       const deltaY = e.clientY - startY.current;
-      const newHeight = Math.max(80, Math.min(400, startHeight.current + deltaY));
+      const newHeight = Math.max(80, Math.min(600, startHeight.current + deltaY));
       setMinimizedHeight(newHeight);
     };
 

@@ -169,6 +169,30 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }
   }, []);
 
+  // Reset completion effects - MUST be defined BEFORE animateSlidingTitle
+  const resetCompletionEffects = useCallback(() => {
+    // Reset title
+    if (titleIntervalRef.current) {
+      clearInterval(titleIntervalRef.current);
+      titleIntervalRef.current = null;
+    }
+    
+    // Clear auto-reset timeout
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = null;
+    }
+    
+    // Restore original title
+    document.title = originalTitleRef.current;
+    
+    // Reset favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      favicon.href = originalFaviconRef.current;
+    }
+  }, []);
+
   // Sliding/scrolling title animation (like train station display)
   const animateSlidingTitle = useCallback(() => {
     const message = 'Batch Finished Successfully ✓';
@@ -198,34 +222,10 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }, 150); // Scroll speed - 150ms per character
     
     // Auto-reset after 10 seconds
-    setTimeout(() => {
+    resetTimeoutRef.current = setTimeout(() => {
       resetCompletionEffects();
     }, 10000);
   }, [resetCompletionEffects]);
-
-  // Reset completion effects
-  const resetCompletionEffects = useCallback(() => {
-    // Reset title
-    if (titleIntervalRef.current) {
-      clearInterval(titleIntervalRef.current);
-      titleIntervalRef.current = null;
-    }
-    
-    // Clear auto-reset timeout
-    if (resetTimeoutRef.current) {
-      clearTimeout(resetTimeoutRef.current);
-      resetTimeoutRef.current = null;
-    }
-    
-    // Restore original title
-    document.title = originalTitleRef.current;
-    
-    // Reset favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (favicon) {
-      favicon.href = originalFaviconRef.current;
-    }
-  }, []);
 
   // Start completion effects
   const startCompletionEffects = useCallback(() => {
