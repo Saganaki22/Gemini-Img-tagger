@@ -467,6 +467,8 @@ function ListViewItem({
   onRerun,
   onOpenModal,
   disabled,
+  isDragging,
+  onDragEnter,
 }: {
   image: ImageItem;
   isSelected: boolean;
@@ -475,6 +477,8 @@ function ListViewItem({
   onRerun: () => void;
   onOpenModal: () => void;
   disabled: boolean;
+  isDragging: boolean;
+  onDragEnter: () => void;
 }) {
   const getStatusClass = () => {
     switch (image.status) {
@@ -493,9 +497,16 @@ function ListViewItem({
     <div
       className={cn(
         'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors',
-        isSelected && 'ring-2 ring-primary'
+        isSelected && 'ring-2 ring-primary',
+        isDragging && 'bg-primary/10'
       )}
       onClick={(e) => onToggle(e.ctrlKey || e.metaKey)}
+      onMouseEnter={() => {
+        if (isDragging) {
+          onDragEnter();
+        }
+      }}
+      style={{ userSelect: 'none' }}
     >
       {/* Thumbnail */}
       <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-black/50">
@@ -582,6 +593,9 @@ export function ImageGallery({
   const [modalImageId, setModalImageId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid-6');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartId = useRef<string | null>(null);
+  const isCtrlPressed = useRef(false);
 
   const handleOpenModal = useCallback((id: string) => {
     setModalImageId(id);
@@ -606,6 +620,40 @@ export function ImageGallery({
 
     setModalImageId(sortedImages[newIndex].id);
   }, [modalImageId]);
+
+  // Drag selection handlers
+  const handleDragStart = useCallback((id: string, ctrlPressed: boolean) => {
+    if (!ctrlPressed) return;
+    isCtrlPressed.current = true;
+    dragStartId.current = id;
+    setIsDragging(true);
+    // Toggle the first item
+    onToggleSelection(id, true);
+  }, [onToggleSelection]);
+
+  const handleDragEnter = useCallback((id: string) => {
+    if (!isDragging || !isCtrlPressed.current) return;
+    // Toggle this item
+    onToggleSelection(id, true);
+  }, [isDragging, onToggleSelection]);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    dragStartId.current = null;
+    isCtrlPressed.current = false;
+  }, []);
+
+  // Add global mouse up handler
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDragging) {
+        handleDragEnd();
+      }
+    };
+    
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, [isDragging, handleDragEnd]);
 
   // Sort images
   const sortedImages = useMemo(() => {
@@ -682,17 +730,32 @@ export function ImageGallery({
 
       {/* Image Grid/List */}
       {viewMode === 'list' ? (
-        <div className="space-y-2">
+        <div 
+          className="space-y-2"
+          onMouseDown={(e) => {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+            }
+          }}
+        >
           {sortedImages.map((image) => (
             <ListViewItem
               key={image.id}
               image={image}
               isSelected={selectedIds.has(image.id)}
-              onToggle={(isCtrlPressed) => onToggleSelection(image.id, isCtrlPressed)}
+              onToggle={(isCtrlPressed) => {
+                if (isCtrlPressed && !isDragging) {
+                  handleDragStart(image.id, true);
+                } else {
+                  onToggleSelection(image.id, isCtrlPressed);
+                }
+              }}
               onDelete={() => onDelete(image.id)}
               onRerun={() => onRerun(image.id)}
               onOpenModal={() => handleOpenModal(image.id)}
               disabled={isProcessing}
+              isDragging={isDragging}
+              onDragEnter={() => handleDragEnter(image.id)}
             />
           ))}
         </div>

@@ -223,7 +223,7 @@ export function BatchControls({
         {/* Export ZIP Button */}
         <Button
           variant="outline"
-          className="gap-2 border-border hover:border-primary/50 hover:bg-primary hover:text-black group"
+          className="gap-2 border-border hover:border-primary/50 hover:bg-primary hover:text-black group h-10 px-4"
           onClick={onExportZip}
           disabled={!canExport || state === 'running'}
         >
