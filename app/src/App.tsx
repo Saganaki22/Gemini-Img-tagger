@@ -157,7 +157,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Completion effects refs
   const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const originalTitleRef = useRef<string>('Image Tagger Pro - AI-powered image tagging with Gemini');
+  const originalTitleRef = useRef<string>('Gemini IMG Tagger - AI-powered image tagging');
   const originalFaviconRef = useRef<string>('/favicon.svg');
 
   // Sliding/scrolling title animation (like train station display)
@@ -894,7 +894,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text">Image Tagger Pro</h1>
+              <h1 className="text-xl font-bold gradient-text">Gemini IMG Tagger</h1>
               <p className="text-xs text-muted-foreground">AI-powered image tagging with Gemini</p>
             </div>
           </div>
