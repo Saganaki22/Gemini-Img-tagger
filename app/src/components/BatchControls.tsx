@@ -159,12 +159,12 @@ export function BatchControls({
           </Button>
         ) : (
           <Button
-            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="gap-2 bg-green-600 text-white hover:bg-green-700"
             onClick={onStart}
             disabled={totalCount === 0 || (selectedCount === 0 && completedCount === totalCount && totalCount > 0)}
           >
-            <Play className="h-4 w-4" />
-            {getButtonText()}
+            <Play className="h-4 w-4 text-white" />
+            <span className="text-white">{getButtonText()}</span>
           </Button>
         )}
 
@@ -223,14 +223,12 @@ export function BatchControls({
         {/* Export ZIP Button */}
         <Button
           variant="outline"
-          className="gap-2 border-border hover:border-primary/50 hover:bg-primary hover:text-black group h-10 px-4"
+          className="gap-2 border-border hover:border-primary/50 hover:bg-primary h-10 px-4 text-foreground"
           onClick={onExportZip}
           disabled={!canExport || state === 'running'}
         >
-          <Archive className="h-4 w-4 group-hover:text-black" />
-          <span className="group-hover:text-black">
-            {selectedCount > 0 ? `Export Selected (${selectedCount})` : 'Export ZIP'}
-          </span>
+          <Archive className="h-4 w-4" />
+          <span>{selectedCount > 0 ? `Export Selected (${selectedCount})` : 'Export ZIP'}</span>
         </Button>
       </div>
     </div>

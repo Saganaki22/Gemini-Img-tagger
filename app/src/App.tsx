@@ -15,6 +15,7 @@ import { Dropzone } from '@/components/Dropzone';
 import { ImageGallery } from '@/components/ImageGallery';
 import { Console } from '@/components/Console';
 import { BatchControls } from '@/components/BatchControls';
+import { HelpModal } from '@/components/HelpModal';
 import { ToastContainer, useToast } from '@/components/Toast';
 import { useSecureStorage } from '@/hooks/useSecureStorage';
 import { useLogger } from '@/hooks/useLogger';
@@ -88,6 +89,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // System Instructions Modal
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
+
+  // Help Modal
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Sound & Time Tracking
   const [isMuted, setIsMuted] = useState(false);
@@ -463,11 +467,19 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }
     
     if (hasSelectedImages) {
-      // User selected specific images - process those (ignore old batch)
+      // User selected specific images - process those including already done ones for reprocessing
       itemsToProcess = images.filter((img) => 
-        selectedIds.has(img.id) && img.status !== 'done' && img.status !== 'processing'
+        selectedIds.has(img.id) && img.status !== 'processing'
       );
-      itemsToProcessRef.current = itemsToProcess;
+      // Reset done images to pending so they get reprocessed
+      setImages((prev) =>
+        prev.map((img) =>
+          selectedIds.has(img.id) && img.status === 'done' ? { ...img, status: 'pending' } : img
+        )
+      );
+      itemsToProcessRef.current = itemsToProcess.map(img => 
+        img.status === 'done' ? { ...img, status: 'pending' } : img
+      );
       currentBatchIndexRef.current = 0;
     } else if (hasActiveBatch) {
       // Resume from pause - get fresh status from current images state
@@ -956,7 +968,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                 <span className={cn(selectedIds.size > 0 && 'text-primary font-medium')}>
                   {selectedIds.size} selected
                 </span>
-                {selectedIds.size > 0 && (
+                {selectedIds.size > 0 ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -964,7 +976,15 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
                   >
                     Clear
                   </Button>
-                )}
+                ) : images.length > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds(new Set(images.map(img => img.id)))}
+                  >
+                    Select All
+                  </Button>
+                ) : null}
               </div>
             </div>
 
@@ -983,6 +1003,9 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Help Modal */}
+      <HelpModal />
 
       {/* System Instructions Modal */}
       {isSystemModalOpen && (

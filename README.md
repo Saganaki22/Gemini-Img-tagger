@@ -1,4 +1,4 @@
-# 🏷️ Image Tagger Pro
+# 🏷️ Gemini IMG Tagger
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-success?style=flat-square&logo=vercel)](https://drbaph.is-a.dev/Gemini-Img-tagger)
 [![Gemini API](https://img.shields.io/badge/Gemini-API-blue?style=flat-square&logo=google)](https://aistudio.google.com/app/api-keys)
@@ -13,24 +13,66 @@ An intuitive, plug-and-play solution for batch tagging large image datasets usin
 
 ## ✨ Features
 
-- **🚀 Batch Processing** - Process multiple images simultaneously with configurable batch sizes
-- **🤖 Gemini 3.5 Flash & Pro Support** - Choose between speed (Flash) or advanced reasoning (Pro)
-- **🖼️ Visual Gallery** - Browse and manage your images with an intuitive card-based interface
-- **🎯 Smart Selection** - Ctrl/Cmd+Click to select specific images for targeted processing
-- **📝 Rich Text Editor** - Built-in modal editor for refining AI-generated descriptions
-- **📦 ZIP Export** - Export images with their corresponding .txt files in one click
-- **💾 Auto-Save** - API key and system instructions are securely stored locally
-- **🔒 Secure Storage** - API keys are obfuscated using XOR before local storage
-- **📊 Progress Tracking** - Real-time progress bar and console logging
-- **🎨 Modern UI** - Beautiful dark-themed interface with smooth animations
-- **📱 Responsive Design** - Works seamlessly on desktop and tablet devices
+### 🚀 Core Processing
+- **Batch Processing** - Process multiple images simultaneously with configurable batch sizes (1-100 per request)
+- **Multiple Gemini Models** - Choose between Gemini 3 Flash (fast) and Pro (advanced reasoning)
+- **Pause & Resume** - Stop batch processing anytime without losing progress
+- **Individual Retry** - Click the refresh button on any image to reprocess just that one
+
+### 🖼️ Image Management
+- **Visual Gallery** - Browse and manage images with an intuitive card-based interface
+- **Multiple View Modes** - Grid (3/6 columns) and List view with sorting options (A-Z / Z-A)
+- **Smart Selection** - 
+  - **Click** to select/deselect an image
+  - **Ctrl/Cmd + Click** to add/remove individual images from selection
+  - **Ctrl/Cmd + Drag** to select multiple images at once
+  - **Select All / Clear** buttons for quick bulk selection
+- **Image Search** - Find images quickly by typing their filename (auto-navigates to correct page)
+
+### 📝 Text Generation & Editing
+- **Rich Text Editor** - Built-in modal editor for refining AI-generated descriptions
+- **System Instructions** - Customize AI behavior with high-level guidelines (click ⛶ to expand full editor)
+- **Custom Prompt** - Add trigger words or prefixes to all generated text
+- **Real-time Editing** - Click on any image's text to view and edit instantly
+
+### 📦 Import & Export
+- **Multiple Upload Methods** - Drag & drop, click to browse, or paste images
+- **ZIP Support** - Upload ZIP archives containing images
+- **Auto-Caption Loading** - When uploading a ZIP with .txt files matching image names, captions are auto-loaded
+- **Export ZIP** - Download all images with their .txt caption files
+- **Export Selected** - Export only the images you've selected
+- **Individual Downloads** - Download single image caption files
+
+### 🔊 Notifications & Feedback
+- **Sound Notifications** - Pleasant chime (C major chord arpeggio) plays when batch completes
+- **Visual Feedback** - Title scrolls "Batch Finished Successfully" for 10 seconds on completion
+- **Mute Toggle** - Use the speaker icon in the header to mute/unmute notification sounds
+- **Progress Tracking** - Real-time progress bar showing completed/total count
+- **Time Estimates** - Live timer showing elapsed time and estimated remaining time
+- **Console Log** - Detailed processing log with timestamps and status messages
+
+### 🎨 User Interface
+- **Modern Dark Theme** - Beautiful dark interface with gold/yellow accents and smooth animations
+- **Responsive Design** - Works seamlessly on desktop and mobile devices
+- **Pagination** - Grid views show configurable items per page (30, 60, 100, 200, 500, or All)
+- **Help Modal** - Click the ? button for detailed usage instructions
+- **Customizable Font Size** - Adjustable font size in System Instructions modal (10-20px)
+
+### 🔐 Security & Privacy
+- **Encrypted Storage** - API keys are encrypted using XOR encryption before local storage
+- **Local Processing** - All image processing happens client-side via API calls
+- **No Data Uploads** - No images or data are uploaded to any server
+- **Auto-Save** - System instructions, settings, and font size preferences are securely stored locally
 
 ## 🎯 Perfect For
 
-- **Dataset Preparation** - Generate training captions for Stable Diffusion, LoRA, etc.
+- **Dataset Preparation** - Generate training captions for Stable Diffusion, LoRA, Flux, etc.
 - **Visual Search Indexing** - Create searchable metadata for image collections
 - **Content Management** - Automatically tag and describe photo libraries
 - **Research Projects** - Batch analyze visual data for academic or commercial use
+- **E-commerce** - Generate product descriptions for large catalogs
+
+---
 
 ## 🚀 Quick Start
 
@@ -45,68 +87,134 @@ Try it now without installation: **[https://drbaph.is-a.dev/Gemini-Img-tagger](h
 
 ### Local Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Saganaki22/Gemini-Img-tagger.git
-   cd Gemini-Img-tagger/app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser**
-   Navigate to `http://localhost:5173`
-
-5. **Add your API key**
-   - Click "Get API Key →" or visit [Google AI Studio](https://aistudio.google.com/app/api-keys)
-   - Generate a new API key
-   - Paste it into the API Key field in the app
-
-### Building for Production
-
 ```bash
-npm run build
+git clone https://github.com/Saganaki22/Gemini-Img-tagger.git
+cd Gemini-Img-tagger/app
+npm install
+npm run dev
 ```
 
-The built files will be in the `dist/` folder, ready for deployment.
+Open your browser to `http://localhost:5173` and add your API key.
 
-## 📖 How to Use
+---
 
-1. **Configure Settings**
-   - Choose your preferred Gemini model (Flash for speed, Pro for quality)
-   - Adjust system instructions (click the maximize button for full editor)
-   - Set your custom prompt prefix
+## 📖 Usage Guide
 
-2. **Upload Images**
-   - Drag and drop or click to browse
-   - Supports JPG, PNG, WebP, and ZIP files
+<details>
+<summary><strong>🔑 Setting Up API Key</strong></summary>
 
-3. **Process**
-   - Click "Start Batch" to process all images
-   - Or Ctrl/Cmd+Click to select specific images, then "Start Selected"
+1. Visit [Google AI Studio](https://aistudio.google.com/app/api-keys)
+2. Generate a new API key
+3. Paste it into the API Key field in the app
+4. Your key is encrypted and stored locally
 
-4. **Review & Edit**
-   - Click any image to view and edit the generated text
-   - Use arrow keys to navigate between images in the modal
+</details>
 
-5. **Export**
-   - Click "Export ZIP" to download images with their .txt files
-   - Or "Export Selected (X)" to export only chosen images
+<details>
+<summary><strong>📤 Uploading Images</strong></summary>
+
+- **Drag & Drop**: Drop images or ZIP files onto the upload area
+- **Click to Browse**: Select files from your computer
+- **Supported Formats**: JPG, PNG, WebP, TXT, ZIP
+- **ZIP with Captions**: If your ZIP includes .txt files with matching names, they'll auto-load as pre-existing captions
+
+</details>
+
+<details>
+<summary><strong>🖱️ Selecting Images</strong></summary>
+
+| Action | Description |
+|--------|-------------|
+| **Click** | Select one image (deselects others) |
+| **Ctrl + Click** | Add/remove from selection |
+| **Ctrl + Drag** | Select multiple at once |
+| **Select All** | Select every image |
+| **Clear** | Deselect all |
+
+</details>
+
+<details>
+<summary><strong>⚡ Processing Images</strong></summary>
+
+- **Start Batch** - Process all pending images (green button)
+- **Start Selected** - Process only selected images
+- **Pause** - Temporarily stop (finishes current batch first)
+- **Stop** - Abort immediately
+- **↻ Retry** - Click the refresh icon on any image to retry just that one
+- **Batch Size** - Adjust how many images per API request (default: 5)
+
+</details>
+
+<details>
+<summary><strong>📝 Customizing Prompts</strong></summary>
+
+1. Click the **⛶** button next to "System Instructions"
+2. Edit **System Instructions** (70% of modal) - Guides AI behavior
+3. Edit **Prompt** (30% of modal) - Add trigger words
+4. Use the **A-A slider** to adjust font size (10-20px)
+5. Changes auto-save when you close the modal
+
+**Example Trigger Words:**
+```
+Include this at the beginning of the description: example_trigger_word,
+```
+
+</details>
+
+<details>
+<summary><strong>🔍 Searching Images</strong></summary>
+
+1. Click the **search icon** in the header
+2. Type part of an image filename
+3. Press **Enter** or click **Find**
+4. The app will:
+   - Navigate to the correct page automatically
+   - Select and scroll to the found image
+   - Highlight it briefly
+
+</details>
+
+<details>
+<summary><strong>💾 Exporting Results</strong></summary>
+
+- **Export ZIP** - Download all completed images with .txt files
+- **Export Selected (X)** - Export only selected images
+- **Individual Download** - Click download icon on any image
+
+</details>
+
+---
+
+## 🎨 Interface Features
+
+### View Modes
+- **Grid 3** - 3 columns, larger images
+- **Grid 6** - 6 columns, smaller images  
+- **List** - Compact list view with thumbnails
+
+### Pagination
+- Configure items per page: **30, 60, 100, 200, 500, or All**
+- List view always shows all images (pagination disabled)
+- Grid views paginate based on your selection
+
+### Items Per Page Behavior
+- **Grid Views**: Remembers your last selection
+- **List View**: Automatically switches to "All" and disables dropdown
+- When switching back to grid: Restores your previous grid setting
+
+---
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19 + TypeScript
 - **Styling**: Tailwind CSS + shadcn/ui components
-- **Build Tool**: Vite
+- **Build Tool**: Vite 7
 - **API**: Google Gemini API
-- **Storage**: LocalStorage with encryption
+- **Storage**: LocalStorage with XOR encryption
+- **Icons**: Lucide React
+- **ZIP Handling**: JSZip
+
+---
 
 ## 🔐 Security & Privacy
 
@@ -115,26 +223,13 @@ The built files will be in the `dist/` folder, ready for deployment.
 - No images or data are uploaded to any server
 - Your data stays on your machine
 
-## 📝 System Instructions Template
-
-The app comes with a comprehensive default system prompt for high-quality image descriptions:
-
-- **Primary Subject**: Detailed focus on main subjects, actions, and textures
-- **Spatial Context**: Environment, background, and object relationships
-- **Technical Qualities**: Medium, lighting, color palette, camera attributes
-
-Click the maximize button (⛶) next to "System Instructions" to view and customize the full prompt.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+---
 
 ## 📄 License
 
 MIT License - feel free to use this for personal or commercial projects.
+
+---
 
 ## 🙏 Acknowledgments
 

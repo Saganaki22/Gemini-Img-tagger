@@ -183,7 +183,7 @@ export function Dropzone({ onImagesAdd, disabled }: DropzoneProps) {
               Drop images here or click to browse
             </p>
             <p className="text-xs text-muted-foreground">
-              Supports JPG, PNG, WebP, and ZIP files
+              Supports JPG, PNG, WebP, TXT, and ZIP files
             </p>
           </div>
 

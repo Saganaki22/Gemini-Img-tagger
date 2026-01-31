@@ -192,6 +192,9 @@ function ImageCard({
   onRerun,
   onUpdateResult,
   onOpenModal,
+  onMouseDown,
+  onItemMouseEnter,
+  onClick,
   disabled,
 }: {
   image: ImageItem;
@@ -201,6 +204,9 @@ function ImageCard({
   onRerun: () => void;
   onUpdateResult: (result: string) => void;
   onOpenModal: () => void;
+  onMouseDown?: (e: React.MouseEvent, id: string) => void;
+  onItemMouseEnter?: (id: string) => void;
+  onClick?: (e: React.MouseEvent, id: string) => void;
   disabled: boolean;
 }) {
   const [showText, setShowText] = useState(false);
@@ -251,14 +257,18 @@ function ImageCard({
     <>
       <div
         id={`image-${image.id}`}
+        onMouseDown={(e) => onMouseDown?.(e, image.id)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          onItemMouseEnter?.(image.id);
+        }}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={(e) => onClick?.(e, image.id)}
         className={cn(
-          'image-card relative bg-card rounded-xl border border-border overflow-hidden group',
+          'image-card relative bg-card rounded-xl border border-border overflow-hidden group select-none cursor-pointer user-select-none',
           isSelected && 'card-selected',
           image.status === 'processing' && 'processing-card'
         )}
-        onClick={(e) => onToggle(e.ctrlKey || e.metaKey)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Status Pill */}
         <div className={cn('status-pill absolute top-3 left-3 z-10', getStatusClass())}>
@@ -299,27 +309,22 @@ function ImageCard({
           
           {/* Maximize Button - appears on hover, hidden when Ctrl/Cmd is pressed */}
           {isHovered && image.status !== 'processing' && (
-            <button
-              onMouseDown={(e) => {
-                // Prevent opening modal if Ctrl or Cmd is held
-                if (e.ctrlKey || e.metaKey) {
-                  e.stopPropagation();
-                  return;
-                }
-              }}
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
               onClick={(e) => {
                 e.stopPropagation();
-                // Only open modal if Ctrl/Cmd is NOT pressed
                 if (!(e.ctrlKey || e.metaKey)) {
                   onOpenModal();
                 }
               }}
-              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <div className="w-14 h-14 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center transition-colors shadow-lg">
+              <button
+                className="w-14 h-14 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center transition-colors shadow-lg pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Maximize2 className="h-6 w-6 text-black" />
-              </div>
-            </button>
+              </button>
+            </div>
           )}
         </div>
 
@@ -466,6 +471,9 @@ function ListViewItem({
   onDelete,
   onRerun,
   onOpenModal,
+  onMouseDown,
+  onMouseEnter,
+  onClick,
   disabled,
 }: {
   image: ImageItem;
@@ -474,6 +482,9 @@ function ListViewItem({
   onDelete: () => void;
   onRerun: () => void;
   onOpenModal: () => void;
+  onMouseDown?: (e: React.MouseEvent, id: string) => void;
+  onMouseEnter?: (id: string) => void;
+  onClick?: (e: React.MouseEvent, id: string) => void;
   disabled: boolean;
 }) {
   const getStatusClass = () => {
@@ -489,18 +500,15 @@ function ListViewItem({
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    const isMultiSelect = e.ctrlKey || e.metaKey;
-    onToggle(isMultiSelect);
-  };
-
   return (
     <div
+      onMouseDown={(e) => onMouseDown?.(e, image.id)}
+      onMouseEnter={() => onMouseEnter?.(image.id)}
+      onClick={(e) => onClick?.(e, image.id)}
       className={cn(
-        'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer',
+        'flex items-center gap-4 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer select-none user-select-none',
         isSelected && 'ring-2 ring-primary'
       )}
-      onClick={handleClick}
     >
       {/* Thumbnail */}
       <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-black/50">
@@ -588,8 +596,11 @@ export function ImageGallery({
   const [viewMode, setViewMode] = useState<ViewMode>('grid-6');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartId = useRef<string | null>(null);
   const isCtrlPressed = useRef(false);
+  const dragStartId = useRef<string | null>(null);
+  const isDraggingRef = useRef(false);
+  const wasDraggingRef = useRef(false);
+  const toggledInMouseDownRef = useRef(false);
 
   const handleOpenModal = useCallback((id: string) => {
     setModalImageId(id);
@@ -615,39 +626,78 @@ export function ImageGallery({
     setModalImageId(sortedImages[newIndex].id);
   }, [modalImageId]);
 
-  // Drag selection handlers
-  const handleDragStart = useCallback((id: string, ctrlPressed: boolean) => {
-    if (!ctrlPressed) return;
-    isCtrlPressed.current = true;
+  // Mouse selection handlers (no native drag-and-drop)
+  const handleMouseDown = useCallback((e: React.MouseEvent, id: string) => {
+    e.preventDefault();
     dragStartId.current = id;
+    isDraggingRef.current = true;
+    wasDraggingRef.current = false;
+    toggledInMouseDownRef.current = false;
     setIsDragging(true);
-    // Toggle the first item
+    // Only toggle the first item if Ctrl is pressed (we're starting a multi-select drag)
+    if (e.ctrlKey || e.metaKey) {
+      toggledInMouseDownRef.current = true;
+      onToggleSelection(id, true);
+    }
+  }, [onToggleSelection]);
+
+  const handleMouseEnter = useCallback((id: string) => {
+    if (!isDraggingRef.current || !isCtrlPressed.current) return;
+    wasDraggingRef.current = true;
+    // Toggle this item
     onToggleSelection(id, true);
   }, [onToggleSelection]);
 
-  const handleDragEnter = useCallback((id: string) => {
-    if (!isDragging || !isCtrlPressed.current) return;
-    // Toggle this item
-    onToggleSelection(id, true);
-  }, [isDragging, onToggleSelection]);
-
-  const handleDragEnd = useCallback(() => {
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
     setIsDragging(false);
-    dragStartId.current = null;
-    isCtrlPressed.current = false;
   }, []);
 
-  // Add global mouse up handler
+  const handleClick = useCallback((e: React.MouseEvent, id: string) => {
+    if (wasDraggingRef.current) {
+      wasDraggingRef.current = false;
+      toggledInMouseDownRef.current = false;
+      return;
+    }
+    // If we already toggled this item in mousedown, don't toggle again
+    if (toggledInMouseDownRef.current) {
+      toggledInMouseDownRef.current = false;
+      return;
+    }
+    const isMultiSelect = e.ctrlKey || e.metaKey;
+    onToggleSelection(id, isMultiSelect);
+  }, [onToggleSelection]);
+
+  // Track Ctrl key state globally
   useEffect(() => {
-    const handleMouseUp = () => {
-      if (isDragging) {
-        handleDragEnd();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        isCtrlPressed.current = true;
       }
     };
-    
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
-  }, [isDragging, handleDragEnd]);
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        isCtrlPressed.current = false;
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        handleMouseUp();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, handleMouseUp]);
 
   // Sort images
   const sortedImages = useMemo(() => {
@@ -736,6 +786,9 @@ export function ImageGallery({
               onDelete={() => onDelete(image.id)}
               onRerun={() => onRerun(image.id)}
               onOpenModal={() => handleOpenModal(image.id)}
+              onMouseDown={handleMouseDown}
+              onMouseEnter={handleMouseEnter}
+              onClick={handleClick}
               disabled={isProcessing}
             />
           ))}
@@ -756,6 +809,9 @@ export function ImageGallery({
               onRerun={() => onRerun(image.id)}
               onUpdateResult={(result) => onUpdateResult(image.id, result)}
               onOpenModal={() => handleOpenModal(image.id)}
+              onMouseDown={handleMouseDown}
+              onItemMouseEnter={handleMouseEnter}
+              onClick={handleClick}
               disabled={isProcessing}
             />
           ))}
