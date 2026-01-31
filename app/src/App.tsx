@@ -119,26 +119,37 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
   const itemsToProcessRef = useRef<ImageItem[]>([]);
   const pendingRerunsRef = useRef<Set<string>>(new Set());
 
-  // Beep sound function
-  const playBeep = useCallback(() => {
+  // Success chime sound function - plays a pleasant C major chord arpeggio
+  const playSuccessChime = useCallback(() => {
     if (isMuted) return;
     
     try {
-      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      // C major chord: C5, E5, G5, C6 (523.25Hz, 659.25Hz, 783.99Hz, 1046.50Hz)
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const now = audioCtx.currentTime;
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        
+        // Staggered start time for arpeggio effect
+        const startTime = now + (i * 0.08);
+        
+        // Envelope: quick attack, long decay
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.6, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.5);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 2.5);
+      });
     } catch {
       // Audio not supported, silently fail
     }
@@ -392,7 +403,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       );
 
       addLog(`Processed: ${image.name}`, 'success');
-      playBeep();
+      playSuccessChime();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -407,7 +418,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       isSingleRerunRef.current = false;  // Clear single rerun flag
       setProcessingState('idle');
     }
-  }, [apiKey, model, systemInstructions, prompt, addLog, addToast, playBeep]);
+  }, [apiKey, model, systemInstructions, prompt, addLog, addToast, playSuccessChime]);
 
   // Rerun image
   const handleRerun = useCallback(
@@ -643,7 +654,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
     // Only play sound and show completion if not stopped/paused (i.e., completed successfully)
     if (!isStoppedRef.current && !isPausedRef.current) {
-      playBeep();
+      playSuccessChime();
       const doneCount = images.filter((img) => img.status === 'done').length;
       addToast(`Batch complete! ${doneCount} images processed.`, 'success');
     }
@@ -682,7 +693,7 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     setElapsedTime(0);
     setEstimatedTimeRemaining(null);
     abortControllerRef.current = null;
-  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, processingState, addToast, addLog, playBeep, processSingleImage]);
+  }, [apiKey, images, selectedIds, model, systemInstructions, prompt, batchSize, processingState, addToast, addLog, playSuccessChime, processSingleImage]);
 
   // Pause
   const handlePause = useCallback(() => {

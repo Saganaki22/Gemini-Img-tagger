@@ -806,7 +806,7 @@ export function ImageGallery({
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground hidden sm:inline">Show:</label>
             <select
-              value={itemsPerPage}
+              value={itemsPerPage === Infinity ? 'all' : itemsPerPage}
               onChange={(e) => setItemsPerPage(e.target.value === 'all' ? Infinity : parseInt(e.target.value))}
               className="h-8 px-2 text-xs bg-secondary border border-border rounded-md focus:outline-none focus:border-primary"
             >
