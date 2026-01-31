@@ -157,8 +157,17 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Completion effects refs
   const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const originalTitleRef = useRef<string>('Gemini IMG Tagger - AI-powered image tagging');
   const originalFaviconRef = useRef<string>('/favicon.svg');
+  
+  // Store original favicon on mount
+  useEffect(() => {
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon?.href) {
+      originalFaviconRef.current = favicon.href;
+    }
+  }, []);
 
   // Sliding/scrolling title animation (like train station display)
   const animateSlidingTitle = useCallback(() => {
@@ -187,7 +196,12 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       position++;
       
     }, 150); // Scroll speed - 150ms per character
-  }, []);
+    
+    // Auto-reset after 10 seconds
+    setTimeout(() => {
+      resetCompletionEffects();
+    }, 10000);
+  }, [resetCompletionEffects]);
 
   // Reset completion effects
   const resetCompletionEffects = useCallback(() => {
@@ -196,14 +210,18 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
       clearInterval(titleIntervalRef.current);
       titleIntervalRef.current = null;
     }
+    
+    // Clear auto-reset timeout
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = null;
+    }
+    
     // Restore original title
     document.title = originalTitleRef.current;
     
-    // Reset favicon - try multiple selectors
-    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (!favicon) {
-      favicon = document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement;
-    }
+    // Reset favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
     if (favicon) {
       favicon.href = originalFaviconRef.current;
     }
@@ -211,31 +229,18 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
 
   // Start completion effects
   const startCompletionEffects = useCallback(() => {
-    // Change favicon - try multiple selectors
-    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    if (!favicon) {
-      favicon = document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement;
+    // Change favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      // Store current href if not already stored
+      if (!originalFaviconRef.current || originalFaviconRef.current === '/favicon.svg') {
+        originalFaviconRef.current = favicon.href;
+      }
+      // Change to success favicon with cache-busting
+      favicon.href = `/success.svg?v=${Date.now()}`;
     }
     
-    // Create favicon link if it doesn't exist
-    if (!favicon) {
-      favicon = document.createElement('link');
-      favicon.rel = 'icon';
-      favicon.type = 'image/svg+xml';
-      document.head.appendChild(favicon);
-    }
-    
-    // Store original and change to success
-    if (favicon && favicon.href !== '/success.svg') {
-      originalFaviconRef.current = favicon.href;
-    }
-    favicon.href = '/success.svg';
-    
-    // Force browser to refresh favicon by adding timestamp
-    const timestamp = Date.now();
-    favicon.href = `/success.svg?v=${timestamp}`;
-    
-    // Start sliding title animation
+    // Start sliding title animation (includes 10s auto-reset)
     animateSlidingTitle();
   }, [animateSlidingTitle]);
 
