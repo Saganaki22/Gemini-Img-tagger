@@ -307,6 +307,14 @@ A figure wearing a bulky, white extra-vehicular activity spacesuit sits alone in
     }
 
     setProcessingState('running');
+    
+    // Set image status to processing
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === image.id ? { ...img, status: 'processing' } : img
+      )
+    );
+    
     addLog(`Processing single image: ${image.name}`, 'info');
 
     try {
