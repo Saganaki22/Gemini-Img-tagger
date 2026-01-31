@@ -191,7 +191,6 @@ function ImageModal({ image, images, onClose, onNavigate, onUpdateResult, onReru
 function ImageCard({
   image,
   isSelected,
-  onToggle,
   onDelete,
   onRerun,
   onUpdateResult,
@@ -203,7 +202,6 @@ function ImageCard({
 }: {
   image: ImageItem;
   isSelected: boolean;
-  onToggle: (isCtrlPressed: boolean) => void;
   onDelete: () => void;
   onRerun: () => void;
   onUpdateResult: (result: string) => void;
@@ -975,7 +973,6 @@ export function ImageGallery({
               key={image.id}
               image={image}
               isSelected={selectedIds.has(image.id)}
-              onToggle={(isCtrlPressed) => onToggleSelection(image.id, isCtrlPressed)}
               onDelete={() => onDelete(image.id)}
               onRerun={() => onRerun(image.id)}
               onUpdateResult={(result) => onUpdateResult(image.id, result)}
